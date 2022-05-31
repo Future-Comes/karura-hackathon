@@ -15,4 +15,3 @@ processor.addEventHandler("dex.AddLiquidity", handlers.handleAddLiquidity)
 processor.addEventHandler("dex.RemoveLiquidity", handlers.handleRemoveLiquidity)
 
 processor.run();
-
