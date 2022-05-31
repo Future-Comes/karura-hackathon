@@ -165,8 +165,10 @@ export const getUsdPrice = async (store: Store, currency: Currency, timestamp: b
             SELECT to_amount, from_amount
             FROM swap s
             WHERE (
-                s.from_currency = '${currencyName}'
-                AND s.to_currency = 'KUSD'
+                (
+                    (s.from_currency = '${currencyName}' AND s.to_currency = 'KUSD')
+                    OR (s.to_currency = '${currencyName}' AND s.from_currency = 'KUSD')
+                )
                 AND s."timestamp" >= ${Number(timestamp) - (1000 * 60 * 60 * 24)}
             )
         `);
@@ -196,12 +198,12 @@ export const getVolumeDay = async (store: Store, currency: string, timestamp: bi
             SELECT  SUM(from_amount)
             FROM swap s
             WHERE (
-                s.from_currency = '${currency}'
+                (s.from_currency = '${currency}' OR s.to_currency = '${currency}')
                 AND s."timestamp" >= ${Number(timestamp) - (1000 * 60 * 60 * 24)}
             )
         `);
 
-    return query[0].sum;
+    return query[0].sum || 0;
 }
 
 export const getVolumeDayUSD = async (store: Store, currencyName: string, timestamp: bigint): Promise<number> => {
