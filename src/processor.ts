@@ -10,6 +10,7 @@ processor.setDataSource({
   chain: "wss://karura-rpc-3.aca-api.network/ws",
 });
 processor.setTypesBundle("karura")
+processor.setBlockRange({ from: 1900000 })
 processor.addEventHandler("dex.Swap", handlers.handleSwap)
 processor.addEventHandler("dex.AddLiquidity", handlers.handleAddLiquidity)
 processor.addEventHandler("dex.RemoveLiquidity", handlers.handleRemoveLiquidity)

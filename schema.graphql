@@ -4,8 +4,8 @@ type Swap @entity {
   blockNumber: Int!
   eventIdx: Int!
   step: Int!
-  fromCurrency: String!
-  toCurrency: String!
+  fromCurrency: Currency!
+  toCurrency: Currency!
   fromAmount: BigInt!
   toAmount: BigInt!
 }
@@ -72,8 +72,8 @@ type CurrLiquidity @entity {
 type Pool @entity {
   "Pool address"
   id: ID!
-  currencyZero: String!
-  currencyOne: String!
+  currencyZero: Currency!
+  currencyOne: Currency!
   volumeDaysDay: [PoolVolumeDay!]! @derivedFrom(field: "pool")
   liquidityHistory: [PoolLiquidity!]! @derivedFrom(field: "pool")
   poolOperations: [LiquidityChange!]! @derivedFrom(field: "pool")

@@ -1,17 +1,19 @@
-import { EventHandlerContext } from "@subsquid/substrate-processor";
-import { CurrencyId_Token } from "../types/v2041"
-import { Swap } from "../model";
+import {EventHandlerContext, Store} from "@subsquid/substrate-processor";
+import {CurrencyId} from "../types/v2041"
+import {Currency, Swap} from "../model";
+import {createCurrency, getTokenName} from "./currency";
 
-interface Token {
-    token: CurrencyId_Token,
-    amount: bigint
+interface NormalizationSwap {
+    step: number,
+    fromCurrency: Currency,
+    fromAmount: bigint,
+    toCurrency: Currency,
+    toAmount: bigint,
 }
-interface Tokens {
-    from: Token,
-    to: Token
-}
+type Currencies = { [k: string]: Currency };
 
-export async function createSwap(ctx: EventHandlerContext, tokens: Tokens, step: number): Promise<void> {
+export async function createSwap(ctx: EventHandlerContext, swap: NormalizationSwap): Promise<void> {
+    const { step, fromCurrency, fromAmount, toCurrency, toAmount } = swap;
     const { store, event, block } = ctx;
     const timestamp = BigInt(ctx.block.timestamp);
 
@@ -21,9 +23,51 @@ export async function createSwap(ctx: EventHandlerContext, tokens: Tokens, step:
         eventIdx: event.indexInBlock,
         step,
         timestamp,
-        fromCurrency: tokens.from.token.value.__kind,
-        fromAmount: tokens.from.amount,
-        toCurrency: tokens.to.token.value.__kind,
-        toAmount: tokens.to.amount
+        fromCurrency,
+        toCurrency,
+        fromAmount,
+        toAmount,
     }))
+}
+
+export async function getSwaps(
+    store: Store,
+    propPath: CurrencyId[],
+    liquidityChanges: bigint[]
+): Promise<NormalizationSwap[]> {
+    const swaps: NormalizationSwap[] = [];
+    const currencies: Currencies = {};
+
+    for (let step = 1; step < propPath.length; step++) {
+        const fromTokenName = getTokenName(propPath[step - 1]);
+        const toTokenName = getTokenName(propPath[step]);
+
+        if (!fromTokenName || !toTokenName) continue
+
+        const fromAmount = liquidityChanges[step - 1];
+        const toAmount = liquidityChanges[step];
+
+        let fromCurrency = currencies[fromTokenName];
+        let toCurrency = currencies[toTokenName];
+
+        if (!fromCurrency) {
+            fromCurrency = await createCurrency(store, fromTokenName);
+            currencies[fromTokenName] = fromCurrency;
+        }
+
+        if (!toCurrency) {
+            toCurrency = await createCurrency(store, toTokenName);
+            currencies[toTokenName] = toCurrency;
+        }
+
+        swaps.push({
+            step,
+            fromCurrency,
+            fromAmount,
+            toCurrency,
+            toAmount
+        })
+    }
+
+    return swaps;
 }

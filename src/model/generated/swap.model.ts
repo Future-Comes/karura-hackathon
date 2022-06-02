@@ -1,5 +1,6 @@
-import {Entity as Entity_, Column as Column_, PrimaryColumn as PrimaryColumn_} from "typeorm"
+import {Entity as Entity_, Column as Column_, PrimaryColumn as PrimaryColumn_, ManyToOne as ManyToOne_, Index as Index_} from "typeorm"
 import * as marshal from "./marshal"
+import {Currency} from "./currency.model"
 
 @Entity_()
 export class Swap {
@@ -22,11 +23,13 @@ export class Swap {
   @Column_("int4", {nullable: false})
   step!: number
 
-  @Column_("text", {nullable: false})
-  fromCurrency!: string
+  @Index_()
+  @ManyToOne_(() => Currency, {nullable: false})
+  fromCurrency!: Currency
 
-  @Column_("text", {nullable: false})
-  toCurrency!: string
+  @Index_()
+  @ManyToOne_(() => Currency, {nullable: false})
+  toCurrency!: Currency
 
   @Column_("numeric", {transformer: marshal.bigintTransformer, nullable: false})
   fromAmount!: bigint

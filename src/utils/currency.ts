@@ -1,22 +1,20 @@
 import {Store} from "@subsquid/substrate-processor";
 import {Currency, CurrLiquidity, CurrPrice, CurrVolumeDay} from "../model";
-import {get, getPrice, getUsdPrice, getVolumeDay, getVolumeDayUSD} from "../mappings/utility";
-import {CurrencyId_Token} from "../types/v2041";
+import {get, getPriceUSD, getUsdPrice, getVolumeDay} from "../mappings/utility";
+import {CurrencyId} from "../types/v2041";
 
-export async function getCurrencyByName(store: Store, currencyName: string): Promise<Currency> {
-    const currency = await store.query(`
-        SELECT * FROM currency c
-        WHERE (c.currency_name = '${currencyName}')
-    `);
+export function getTokenName(currency: CurrencyId): string | null {
+    const type = currency.__kind;
 
-    currency[0].currencyName = currency[0].currency_name;
+    if (type === 'Token') {
+        return currency.value.__kind
+    }
 
-    return currency[0];
+    return null;
 }
 
-export async function createCurrency(store: Store, currencyToken: CurrencyId_Token): Promise<Currency> {
-    const currencyName = currencyToken.value.__kind;
-    const id = currencyToken.__kind + '-' + currencyName;
+export async function createCurrency(store: Store, currencyName: string): Promise<Currency> {
+    const id = 'token-' + currencyName;
 
     let currency = await get(store, Currency, id)
 
@@ -29,8 +27,7 @@ export async function createCurrency(store: Store, currencyToken: CurrencyId_Tok
     return currency;
 }
 
-export async function createCurrPrice(store: Store, currencyName: string, timestamp: bigint): Promise<void> {
-    const currency = await getCurrencyByName(store, currencyName);
+export async function createCurrPrice(store: Store, currency: Currency, timestamp: bigint): Promise<void> {
     const usdPrice = await getUsdPrice(store, currency, timestamp);
 
     await store.save(new CurrPrice({
@@ -41,11 +38,9 @@ export async function createCurrPrice(store: Store, currencyName: string, timest
     }))
 }
 
-export async function createCurrVolumeDay(store: Store, currencyName: string, timestamp: bigint): Promise<void> {
-    const currency = await getCurrencyByName(store, currencyName);
-
-    const volumeDayNative = await getVolumeDay(store, currencyName, timestamp);
-    const volumeDayUSD = await getVolumeDayUSD(store, currencyName, timestamp);
+export async function createCurrVolumeDay(store: Store, currency: Currency, timestamp: bigint): Promise<void> {
+    const volumeDayNative = await getVolumeDay(store, currency, timestamp);
+    const volumeDayUSD = await getPriceUSD(store, currency, volumeDayNative, timestamp);
 
     await store.save(new CurrVolumeDay({
         id: currency.id + timestamp,
@@ -59,16 +54,15 @@ export async function createCurrVolumeDay(store: Store, currencyName: string, ti
 export async function createCurrLiquidity(
     store: Store,
     currency: Currency,
+    liquidity: bigint,
     timestamp: bigint,
-    amount: bigint,
-    balance: bigint
 ): Promise<void> {
-    const liquidityUSD = await getPrice(store, currency, timestamp, amount);
+    const liquidityUSD = await getPriceUSD(store, currency, liquidity, timestamp);
 
     await store.save(new CurrLiquidity({
         id: currency.currencyName + timestamp,
         currency: currency,
-        liquidity: balance,
+        liquidity,
         liquidityUSD,
         timestamp,
     }))

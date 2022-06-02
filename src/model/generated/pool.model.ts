@@ -1,4 +1,5 @@
-import {Entity as Entity_, Column as Column_, PrimaryColumn as PrimaryColumn_, OneToMany as OneToMany_} from "typeorm"
+import {Entity as Entity_, Column as Column_, PrimaryColumn as PrimaryColumn_, ManyToOne as ManyToOne_, Index as Index_, OneToMany as OneToMany_} from "typeorm"
+import {Currency} from "./currency.model"
 import {PoolVolumeDay} from "./poolVolumeDay.model"
 import {PoolLiquidity} from "./poolLiquidity.model"
 import {LiquidityChange} from "./liquidityChange.model"
@@ -15,11 +16,13 @@ export class Pool {
   @PrimaryColumn_()
   id!: string
 
-  @Column_("text", {nullable: false})
-  currencyZero!: string
+  @Index_()
+  @ManyToOne_(() => Currency, {nullable: false})
+  currencyZero!: Currency
 
-  @Column_("text", {nullable: false})
-  currencyOne!: string
+  @Index_()
+  @ManyToOne_(() => Currency, {nullable: false})
+  currencyOne!: Currency
 
   @OneToMany_(() => PoolVolumeDay, e => e.pool)
   volumeDaysDay!: PoolVolumeDay[]

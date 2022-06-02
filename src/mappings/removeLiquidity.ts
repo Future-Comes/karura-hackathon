@@ -1,10 +1,10 @@
 import {EventHandlerContext} from "@subsquid/substrate-processor"
 import {DexRemoveLiquidityEvent} from "../types/events"
 import {LiquidityChangeReason} from "../model"
-import {addLiquidityChange} from "./utility" 
 import {CurrencyId} from "../types/v2041"
-import {addPoolLiquidity, addPoolVolume, createPool} from "../utils/pools";
-import {createCurrency} from "../utils/currency";
+import {addPoolVolume, createPool} from "../utils/pools";
+import {createCurrency, getTokenName} from "../utils/currency";
+import {addLiquidityChange} from "../utils/liquidity";
 
 interface RemoveLiquidityParams {
     who: Uint8Array,
@@ -88,21 +88,23 @@ export async function handleRemoveLiquidity(ctx : EventHandlerContext): Promise<
 
     const { cur0, pool0, cur1, pool1 } = await getRemoveLiquidityParams(ctx)
 
-    if (cur0.__kind !== "Token" || cur1.__kind !== "Token") return
+    const currencyZeroName = getTokenName(cur0);
+    const currencyOneName = getTokenName(cur1);
 
-    await createCurrency(store, cur0);
-    await createCurrency(store, cur1);
+    if (!currencyZeroName || !currencyOneName) return
 
-    const pool = await createPool(store, [cur0, cur1]);
-    await addPoolVolume(store, pool, -pool0, timestamp);
-    await addPoolLiquidity(store, pool, [-pool0, -pool1], timestamp);
+    const currencyZero = await createCurrency(store, currencyZeroName);
+    const currencyOne = await createCurrency(store, currencyOneName);
+
+    const pool = await createPool(store, currencyZero, currencyOne);
+    await addPoolVolume(store, pool, timestamp);
 
     await addLiquidityChange(
         ctx,
         LiquidityChangeReason.REMOVE,
         pool,
-        cur0,
-        cur1,
+        currencyZero,
+        currencyOne,
         -pool0,
         -pool1
     )

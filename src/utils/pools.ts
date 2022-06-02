@@ -1,17 +1,17 @@
 import {Store} from "@subsquid/substrate-processor";
-import {CurrencyId_Token} from "../types/v2041";
-import { Pool, PoolLiquidity, PoolVolumeDay } from "../model";
-import {get, getUsdPrice} from "../mappings/utility";
-import {getCurrencyByName} from "./currency";
+import {Currency, Pool, PoolLiquidity, PoolVolumeDay, Swap} from "../model";
+import {getPriceUSD} from "../mappings/utility";
 
-type Currencies = [CurrencyId_Token, CurrencyId_Token];
+export async function createPool(store: Store, currencyZero: Currency, currencyOne: Currency): Promise<Pool> {
+    const id = currencyZero.currencyName + '-' + currencyOne.currencyName;
 
-export async function createPool(store: Store, currencies: Currencies): Promise<Pool> {
-    const currencyZero = currencies[0].value.__kind;
-    const currencyOne = currencies[1].value.__kind;
-    const id = currencyZero + '-' + currencyOne;
-
-    let pool = await get(store, Pool, id)
+    let pool = await store
+        .getRepository(Pool)
+        .createQueryBuilder('p')
+        .leftJoinAndSelect('p.currencyZero', 'currencyZero')
+        .leftJoinAndSelect('p.currencyOne', "currencyOne")
+        .where('p.id = :id', { id })
+        .getOne();
 
     if (!pool) {
         const props = { id, currencyZero, currencyOne };
@@ -22,26 +22,49 @@ export async function createPool(store: Store, currencies: Currencies): Promise<
     return pool;
 }
 
-async function getPoolVolume(store: Store, currencyName: string, amount: bigint, timestamp: bigint) {
-    const currency = await getCurrencyByName(store, currencyName);
+export const getVolumeDay = async (
+    store: Store,
+    currencyZero: Currency,
+    currencyOne: Currency,
+    timestamp: bigint
+): Promise<bigint> => {
+    const query: Swap[] = await store
+        .getRepository(Swap)
+        .createQueryBuilder('s')
+        .leftJoinAndSelect('s.fromCurrency', 'fromCurrency')
+        .leftJoinAndSelect('s.toCurrency', "toCurrency")
+        .where((qb) => {
+            qb
+                .where('s.from_currency_id = :currencyZero AND s.to_currency_id = :currencyOne')
+                .orWhere('s.from_currency_id = :currencyZero AND s.to_currency_id = :currencyOne')
+        }, { currencyZero: currencyZero.id, currencyOne: currencyOne.id })
+        .andWhere(
+            's.timestamp >= :timestamp',
+            { timestamp: Number(timestamp) - (1000 * 60 * 60 * 24) }
+        )
+        .getMany();
 
-    if (!currency) {
-        return 0;
+    if (query.length === 0) {
+        return BigInt(0);
     }
 
-    const usdPrice = await getUsdPrice(store, currency, timestamp);
+    return query.reduce((acc, {fromCurrency, fromAmount, toAmount}) => {
+        acc += currencyZero.currencyName === fromCurrency.currencyName ? fromAmount : toAmount;
 
-    return Math.trunc(Math.abs(Number(amount)) * usdPrice);
+        return acc;
+    }, BigInt(0));
 }
 
 export async function addPoolVolume(
     store: Store,
     pool: Pool,
-    amount: bigint,
     timestamp: bigint
 ): Promise<void> {
+    const { currencyZero, currencyOne } = pool;
     const id = pool.id + '-' + timestamp;
-    const volumeDayUSD = await getPoolVolume(store, pool.currencyZero, amount, timestamp);
+
+    const volumeDay = await getVolumeDay(store, currencyZero, currencyOne, timestamp);
+    const volumeDayUSD = await getPriceUSD(store, currencyZero, volumeDay, timestamp);
 
     const props = { id, pool, volumeDayUSD, timestamp };
 
@@ -51,13 +74,14 @@ export async function addPoolVolume(
 export async function addPoolLiquidity(
     store: Store,
     pool: Pool,
-    amounts: [bigint, bigint],
+    balanceZero: bigint,
+    balanceOne: bigint,
     timestamp: bigint
 ): Promise<void> {
     const id = pool.id + '-' + timestamp;
-    const volumeDayUSDZero = await getPoolVolume(store, pool.currencyZero, amounts[0], timestamp);
-    const volumeDayUSDOne = await getPoolVolume(store, pool.currencyOne, amounts[1], timestamp);
-    const usdTotalLiquidity = Math.trunc(volumeDayUSDZero + volumeDayUSDOne);
+    const priceZero = await getPriceUSD(store, pool.currencyZero, balanceZero, timestamp);
+    const priceOne = await getPriceUSD(store, pool.currencyOne, balanceOne, timestamp);
+    const usdTotalLiquidity = priceZero + priceOne;
 
     const props = { id, pool, usdTotalLiquidity, timestamp };
 
