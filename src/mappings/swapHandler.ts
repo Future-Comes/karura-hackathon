@@ -92,9 +92,6 @@ export async function handleSwap(ctx: EventHandlerContext): Promise<void> {
         const [currencyZero, currencyOne] = getTradingPair(fromCurrency, toCurrency)
         const balanceZero = currencyZero.currencyName === fromCurrency.currencyName ? fromAmount : -toAmount
         const balanceOne = currencyOne.currencyName === fromCurrency.currencyName ? fromAmount : -toAmount
-        console.log(fromCurrency, toCurrency)
-        console.log(currencyZero, currencyOne)
-        console.log(balanceZero, balanceOne)
 
         const pool = await createPool(store, currencyZero, currencyOne);
         await addPoolVolume(store, pool, timestamp);
