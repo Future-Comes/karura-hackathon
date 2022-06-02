@@ -26,16 +26,6 @@ export const getCurrencyId = (currency: Currency): CurrencyId => {
     return currencyId as CurrencyId;
 }
 
-export const averagePrice = (arr: bigint[]): number => {
-    if (arr.length > 0) {
-        const price = arr.reduce((a, b) => a + b) / BigInt(arr.length);
-
-        return Number(price);
-    }
-
-    return 0;
-};
-
 export const getUsdPrice = async (store: Store, currency: Currency, timestamp: bigint): Promise<number> => {
     const { id, currencyName } = currency;
 
@@ -70,17 +60,17 @@ export const getUsdPrice = async (store: Store, currency: Currency, timestamp: b
         return currPrice?.usdPrice || 0;
     }
 
-    const amounts = [];
+    const amounts: number[] = [];
 
     for (const swap of swaps) {
         const ratio = swap.fromCurrency.currencyName === 'KUSD'
-            ? swap.fromAmount / swap.toAmount
-            : swap.toAmount / swap.fromAmount
+            ? Number(swap.fromAmount) / Number(swap.toAmount)
+            : Number(swap.toAmount) / Number(swap.fromAmount)
 
         amounts.push(ratio);
     }
 
-    return averagePrice(amounts);
+    return amounts.reduce((a, b) => a + b) / amounts.length;
 }
 
 export const getVolumeDay = async (store: Store, currency: Currency, timestamp: bigint): Promise<bigint> => {
@@ -117,7 +107,7 @@ export const getPriceUSD = async (
         tokens = BigInt(tokens) * BigInt(-1);
     }
 
-    const priceUsd = BigInt(tokens) / BigInt(Math.pow(10, 12)) * BigInt(usdPrice);
+    const priceUsd = Number(tokens) / Math.pow(10, 12) * usdPrice;
 
     return Number(priceUsd);
 }
