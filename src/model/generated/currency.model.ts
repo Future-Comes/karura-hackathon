@@ -19,6 +19,9 @@ export class Currency {
   @Column_("text", {nullable: false})
   currencyName!: string
 
+  @Column_("text", {nullable: true})
+  coinGeckoID!: string | undefined | null
+
   @OneToMany_(() => CurrVolumeDay, e => e.currency)
   volumeDayHistory!: CurrVolumeDay[]
 

@@ -1,5 +1,5 @@
-module.exports = class Init1654147525824 {
-  name = 'Init1654147525824'
+module.exports = class Init1654674760037 {
+  name = 'Init1654674760037'
 
   async up(db) {
     await db.query(`CREATE TABLE "curr_volume_day" ("id" character varying NOT NULL, "volume_day_native" numeric NOT NULL, "volume_day_usd" numeric NOT NULL, "timestamp" numeric NOT NULL, "currency_id" character varying NOT NULL, CONSTRAINT "PK_8ec9c8475cb43665ae52199e606" PRIMARY KEY ("id"))`)
@@ -10,7 +10,7 @@ module.exports = class Init1654147525824 {
     await db.query(`CREATE INDEX "IDX_48a6a61594cc62fc3e5e54bd48" ON "curr_price" ("currency_id") `)
     await db.query(`CREATE TABLE "pool_volume_day" ("id" character varying NOT NULL, "volume_day_usd" numeric NOT NULL, "timestamp" numeric NOT NULL, "pool_id" character varying NOT NULL, CONSTRAINT "PK_5d77fbdac354859655b14e818ae" PRIMARY KEY ("id"))`)
     await db.query(`CREATE INDEX "IDX_4f065e19318d1e86b6699fdb4b" ON "pool_volume_day" ("pool_id") `)
-    await db.query(`CREATE TABLE "pool_liquidity" ("id" character varying NOT NULL, "usd_total_liquidity" numeric NOT NULL, "timestamp" numeric NOT NULL, "pool_id" character varying NOT NULL, CONSTRAINT "PK_cb62efc910a2325642f4de1b7b4" PRIMARY KEY ("id"))`)
+    await db.query(`CREATE TABLE "pool_liquidity" ("id" character varying NOT NULL, "usd_price_zero" numeric NOT NULL, "usd_price_one" numeric NOT NULL, "usd_total_liquidity" numeric NOT NULL, "timestamp" numeric NOT NULL, "pool_id" character varying NOT NULL, CONSTRAINT "PK_cb62efc910a2325642f4de1b7b4" PRIMARY KEY ("id"))`)
     await db.query(`CREATE INDEX "IDX_09772a4143d40063de22a1d556" ON "pool_liquidity" ("pool_id") `)
     await db.query(`CREATE TABLE "pool" ("id" character varying NOT NULL, "currency_zero_id" character varying NOT NULL, "currency_one_id" character varying NOT NULL, CONSTRAINT "PK_db1bfe411e1516c01120b85f8fe" PRIMARY KEY ("id"))`)
     await db.query(`CREATE INDEX "IDX_b82075ca2eb663aad1e2789c74" ON "pool" ("currency_zero_id") `)
@@ -19,7 +19,7 @@ module.exports = class Init1654147525824 {
     await db.query(`CREATE INDEX "IDX_34fcef5a4c43839ff5ea4c062f" ON "liquidity_change" ("currency_zero_id") `)
     await db.query(`CREATE INDEX "IDX_26103a0ae2c17ab7b390eb1ca2" ON "liquidity_change" ("currency_one_id") `)
     await db.query(`CREATE INDEX "IDX_59f7403843cb6443f368122bb8" ON "liquidity_change" ("pool_id") `)
-    await db.query(`CREATE TABLE "currency" ("id" character varying NOT NULL, "currency_name" text NOT NULL, CONSTRAINT "PK_3cda65c731a6264f0e444cc9b91" PRIMARY KEY ("id"))`)
+    await db.query(`CREATE TABLE "currency" ("id" character varying NOT NULL, "currency_name" text NOT NULL, "coin_gecko_id" text, CONSTRAINT "PK_3cda65c731a6264f0e444cc9b91" PRIMARY KEY ("id"))`)
     await db.query(`CREATE TABLE "swap" ("id" character varying NOT NULL, "timestamp" numeric NOT NULL, "block_number" integer NOT NULL, "event_idx" integer NOT NULL, "step" integer NOT NULL, "from_amount" numeric NOT NULL, "to_amount" numeric NOT NULL, "from_currency_id" character varying NOT NULL, "to_currency_id" character varying NOT NULL, CONSTRAINT "PK_4a10d0f359339acef77e7f986d9" PRIMARY KEY ("id"))`)
     await db.query(`CREATE INDEX "IDX_5a104bbdfe48a94a9fd2b81990" ON "swap" ("from_currency_id") `)
     await db.query(`CREATE INDEX "IDX_3b0a35a16b356bc35c147cfe4e" ON "swap" ("to_currency_id") `)

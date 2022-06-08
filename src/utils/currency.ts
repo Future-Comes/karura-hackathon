@@ -1,6 +1,6 @@
 import {Store} from "@subsquid/substrate-processor";
 import {Currency, CurrLiquidity, CurrPrice, CurrVolumeDay} from "../model";
-import {get, getPriceUSD, getUsdPrice, getVolumeDay} from "../mappings/utility";
+import {get, getCoinGeckoId, getPriceUSD, getUsdPrice, getVolumeDay} from "../mappings/utility";
 import {CurrencyId} from "../types/v2041";
 
 export function getTokenName(currency: CurrencyId): string | null {
@@ -19,7 +19,8 @@ export async function createCurrency(store: Store, currencyName: string): Promis
     let currency = await get(store, Currency, id)
 
     if (!currency) {
-        const props = { id, currencyName }
+        const coinGeckoID = await getCoinGeckoId(currencyName);
+        const props = { id, currencyName, coinGeckoID: coinGeckoID || null }
 
         currency = await store.save(new Currency(props))
     }

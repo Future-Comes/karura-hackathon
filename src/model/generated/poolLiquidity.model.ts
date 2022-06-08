@@ -16,6 +16,12 @@ export class PoolLiquidity {
   pool!: Pool
 
   @Column_("numeric", {nullable: false})
+  usdPriceZero!: number
+
+  @Column_("numeric", {nullable: false})
+  usdPriceOne!: number
+
+  @Column_("numeric", {nullable: false})
   usdTotalLiquidity!: number
 
   @Column_("numeric", {transformer: marshal.bigintTransformer, nullable: false})

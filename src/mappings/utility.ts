@@ -1,7 +1,14 @@
-import {CurrencyId} from "../types/v2041"
 import {Store} from "@subsquid/substrate-processor"
+import CoinGecko from 'coingecko-api'
+import dayjs from 'dayjs'
+import {CurrencyId} from "../types/v2041"
 import {Currency, CurrPrice, Swap} from "../model"
 
+interface CurrencyCoinGecko {
+    id: string,
+    symbol: string,
+    name: string
+}
 
 export type EntityConstructor<T> = {
     new (...args: any[]): T;
@@ -27,7 +34,20 @@ export const getCurrencyId = (currency: Currency): CurrencyId => {
 }
 
 export const getUsdPrice = async (store: Store, currency: Currency, timestamp: bigint): Promise<number> => {
-    const { id, currencyName } = currency;
+    const { id, currencyName, coinGeckoID } = currency;
+
+    if (coinGeckoID) {
+        const CoinGeckoClient = new CoinGecko();
+        const date = dayjs(Number(timestamp)).format('DD-MM-YYYY');
+
+        const price = await CoinGeckoClient.coins.fetchHistory(coinGeckoID, { date })
+            .then(({ data }) => data.market_data?.current_price?.usd || null)
+            .catch(() => null);
+
+        if (price) {
+            return price;
+        }
+    }
 
     if (currencyName === 'KUSD') {
         return 1
@@ -70,7 +90,11 @@ export const getUsdPrice = async (store: Store, currency: Currency, timestamp: b
         amounts.push(ratio);
     }
 
-    return amounts.reduce((a, b) => a + b) / amounts.length;
+    if (amounts && amounts.length > 0) {
+        return amounts.reduce((a, b) => a + b) / amounts.length;
+    }
+
+    return 0;
 }
 
 export const getVolumeDay = async (store: Store, currency: Currency, timestamp: bigint): Promise<bigint> => {
@@ -110,4 +134,14 @@ export const getPriceUSD = async (
     const priceUsd = Number(tokens) / Math.pow(10, 12) * usdPrice;
 
     return Number(priceUsd);
+}
+
+export const getCoinGeckoId = async (currencyName: string): Promise<string | null> => {
+    const CoinGeckoClient = new CoinGecko();
+    // @ts-ignore
+    const currencyCoinGecko = await CoinGeckoClient.coins.list().then((request: { data: CurrencyCoinGecko[] }) => {
+        return request.data.find(({ symbol }) => symbol === currencyName.toLowerCase());
+    }).catch(() => null);
+
+    return currencyCoinGecko ? currencyCoinGecko.id : null;
 }

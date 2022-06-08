@@ -79,11 +79,11 @@ export async function addPoolLiquidity(
     timestamp: bigint
 ): Promise<void> {
     const id = pool.id + '-' + timestamp;
-    const priceZero = await getPriceUSD(store, pool.currencyZero, balanceZero, timestamp);
-    const priceOne = await getPriceUSD(store, pool.currencyOne, balanceOne, timestamp);
-    const usdTotalLiquidity = priceZero + priceOne;
+    const usdPriceZero = await getPriceUSD(store, pool.currencyZero, balanceZero, timestamp);
+    const usdPriceOne = await getPriceUSD(store, pool.currencyOne, balanceOne, timestamp);
+    const usdTotalLiquidity = usdPriceZero + usdPriceOne;
 
-    const props = { id, pool, usdTotalLiquidity, timestamp };
+    const props = { id, pool, usdPriceZero, usdPriceOne, usdTotalLiquidity, timestamp };
 
     await store.save(new PoolLiquidity(props))
 }

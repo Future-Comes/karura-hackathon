@@ -40,6 +40,7 @@ type Currency @entity {
   "Currency address"
   id: ID!
   currencyName: String!
+  coinGeckoID: String
   volumeDayHistory: [CurrVolumeDay!]! @derivedFrom(field: "currency")
   liquidityHistory: [CurrLiquidity!]! @derivedFrom(field: "currency")
   priceHistory: [CurrPrice!]! @derivedFrom(field: "currency")
@@ -89,6 +90,8 @@ type PoolVolumeDay @entity {
 type PoolLiquidity @entity {
   id: ID!
   pool: Pool!
+  usdPriceZero: Float!
+  usdPriceOne: Float!
   usdTotalLiquidity: Float!
   timestamp: BigInt!
 }
