@@ -26,6 +26,10 @@ type LiquidityChange @entity {
   balanceZero: BigInt!
   balanceOne: BigInt!
   pool: Pool!
+  totalValue: Float!
+  hash: String
+  eventId: String!
+  account: String
 }
 
 

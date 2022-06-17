@@ -13,7 +13,7 @@ import {EventHandlerContext, Store} from "@subsquid/substrate-processor";
 import {Currency, LiquidityChange, LiquidityChangeReason, Pool} from "../model";
 import {createCurrLiquidity} from "./currency";
 import assert from "assert";
-import {get, getCurrencyId} from "../mappings/utility";
+import {get, getCurrencyId, getPriceUSD} from "../mappings/utility";
 import {addPoolLiquidity} from "./pools";
 
 
@@ -60,6 +60,13 @@ export async function addLiquidityChange(
 ): Promise<void> {
     const {store, event, block} = ctx
     const timestamp = BigInt(block.timestamp);
+    const account = event.extrinsic?.signer;
+    const hash = event.extrinsic?.hash;
+    const eventId = `${event.blockNumber}-${event.indexInBlock}`
+
+    const priceZero = await getPriceUSD(store, currencyZero, amountZero, timestamp);
+    const priceOne = await getPriceUSD(store, currencyZero, amountOne, timestamp);
+    const totalValue = priceZero + priceOne || 0;
 
     const pair = currencyZero.currencyName + '-' + currencyOne.currencyName
     const initial = await get(store, LiquidityChange, 'initial--' + pair);
@@ -82,6 +89,10 @@ export async function addLiquidityChange(
             balanceZero,
             balanceOne,
             pool,
+            account,
+            totalValue,
+            hash,
+            eventId,
             timestamp: BigInt(block.timestamp - 1)
         }));
 
@@ -111,6 +122,10 @@ export async function addLiquidityChange(
         balanceZero,
         balanceOne,
         pool,
+        account,
+        totalValue,
+        hash,
+        eventId,
         timestamp
     })
 

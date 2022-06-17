@@ -54,4 +54,16 @@ export class LiquidityChange {
   @Index_()
   @ManyToOne_(() => Pool, {nullable: false})
   pool!: Pool
+
+  @Column_("numeric", {nullable: false})
+  totalValue!: number
+
+  @Column_("text", {nullable: true})
+  hash!: string | undefined | null
+
+  @Column_("text", {nullable: false})
+  eventId!: string
+
+  @Column_("text", {nullable: true})
+  account!: string | undefined | null
 }

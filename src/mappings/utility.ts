@@ -69,7 +69,7 @@ export const getUsdPrice = async (store: Store, currency: Currency, timestamp: b
         )
         .getMany()
 
-    if (!swaps) {
+    if (!swaps || swaps.length === 0) {
         const currPrice = await store
             .getRepository(CurrPrice)
             .createQueryBuilder('cp')
