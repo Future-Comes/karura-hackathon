@@ -1,13 +1,19 @@
-import {Store} from "@subsquid/substrate-processor"
-import CoinGecko from 'coingecko-api'
 import dayjs from 'dayjs'
+import axios from 'axios'
+import {Store} from "@subsquid/substrate-processor"
 import {CurrencyId} from "../types/v2041"
 import {Currency, CurrPrice, Swap} from "../model"
+import {timeout} from "../utils/base";
 
 interface CurrencyCoinGecko {
     id: string,
     symbol: string,
-    name: string
+    name: string,
+    image: {
+        thumb: string,
+        small: string,
+        large: string
+    }
 }
 
 export type EntityConstructor<T> = {
@@ -34,21 +40,9 @@ export const getCurrencyId = (currency: Currency): CurrencyId => {
 }
 
 export const getUsdPrice = async (store: Store, currency: Currency, timestamp: bigint): Promise<number> => {
-    const { id, currencyName, coinGeckoID } = currency;
+    const { id, currencyName, coinGecko } = currency;
 
-    if (coinGeckoID) {
-        const CoinGeckoClient = new CoinGecko();
-        const date = dayjs(Number(timestamp)).format('DD-MM-YYYY');
-
-        const price = await CoinGeckoClient.coins.fetchHistory(coinGeckoID, { date })
-            .then(({ data }) => data.market_data?.current_price?.usd || null)
-            .catch(() => null);
-
-        if (price) {
-            return price;
-        }
-    }
-
+    // StableCoin Karura USD
     if (currencyName === 'KUSD') {
         return 1
     }
@@ -57,41 +51,60 @@ export const getUsdPrice = async (store: Store, currency: Currency, timestamp: b
         .getRepository(Swap)
         .createQueryBuilder('s')
         .leftJoinAndSelect('s.fromCurrency', 'fromCurrency')
-        .leftJoinAndSelect('s.toCurrency', "toCurrency")
+        .leftJoinAndSelect('s.toCurrency', 'toCurrency')
         .where((qb) => {
             qb
                 .where('s.fromCurrency = :currencyId AND s.toCurrency = :kusdId')
                 .orWhere('s.fromCurrency = :kusdId AND s.toCurrency = :currencyId')
-        }, { currencyId: id, kusdId: 'token-KUSD' })
+        }, { currencyId: id, kusdId: 'KUSD' })
         .andWhere(
-            's.timestamp >= :timestamp',
-            { timestamp: Number(timestamp) - (1000 * 60 * 60 * 24) }
+            's.timestamp >= :timestamp_qte AND s.timestamp <= :timestamp_lte',
+            { timestamp_qte: Number(timestamp) - (1000 * 60 * 60 * 24), timestamp_lte: Number(timestamp) }
         )
         .getMany()
 
-    if (!swaps || swaps.length === 0) {
-        const currPrice = await store
-            .getRepository(CurrPrice)
-            .createQueryBuilder('cp')
-            .where('cp.currency_id = :id', { id })
-            .orderBy('timestamp', 'DESC')
-            .getOne();
-
-        return currPrice?.usdPrice || 0;
-    }
-
     const amounts: number[] = [];
 
-    for (const swap of swaps) {
-        const ratio = swap.fromCurrency.currencyName === 'KUSD'
-            ? Number(swap.fromAmount) / Number(swap.toAmount)
-            : Number(swap.toAmount) / Number(swap.fromAmount)
+    if (swaps && swaps.length > 0) {
+        for (const swap of swaps) {
+            const ratio = swap.fromCurrency.currencyName === 'KUSD'
+                ? Number(swap.fromAmount) / Number(swap.toAmount)
+                : Number(swap.toAmount) / Number(swap.fromAmount)
 
-        amounts.push(ratio);
+            amounts.push(ratio);
+        }
+
+        if (amounts && amounts.length > 0) {
+            return amounts.reduce((a, b) => a + b) / amounts.length;
+        }
     }
 
-    if (amounts && amounts.length > 0) {
-        return amounts.reduce((a, b) => a + b) / amounts.length;
+    // Search for a price in a service "CoinGecko"
+    if (coinGecko?.id) {
+        const date = dayjs(Number(timestamp)).format('DD-MM-YYYY');
+
+        const url = `https://api.coingecko.com/api/v3/coins/${coinGecko.id}/history?date=${date}`;
+        const { data } = await axios.get(url);
+
+        await timeout(1300);
+
+        const price = data.market_data?.current_price?.usd;
+
+        if (price) {
+            return price;
+        }
+    }
+
+    // Finding the last recorded price of a token
+    const currPrice = await store
+        .getRepository(CurrPrice)
+        .createQueryBuilder('cp')
+        .where('cp.currency_id = :id', { id })
+        .orderBy('timestamp', 'DESC')
+        .getOne();
+
+    if (currPrice && currPrice.usdPrice) {
+        return currPrice.usdPrice;
     }
 
     return 0;
@@ -136,12 +149,9 @@ export const getPriceUSD = async (
     return Number(priceUsd);
 }
 
-export const getCoinGeckoId = async (currencyName: string): Promise<string | null> => {
-    const CoinGeckoClient = new CoinGecko();
-    // @ts-ignore
-    const currencyCoinGecko = await CoinGeckoClient.coins.list().then((request: { data: CurrencyCoinGecko[] }) => {
-        return request.data.find(({ symbol }) => symbol === currencyName.toLowerCase());
-    }).catch(() => null);
+export const getCoinGecko = async (currencyName: string): Promise<CurrencyCoinGecko> => {
+    const { data }: { data: CurrencyCoinGecko[] } = await axios.get('https://api.coingecko.com/api/v3/coins/list');
+    await timeout(1000);
 
-    return currencyCoinGecko ? currencyCoinGecko.id : null;
+    return data.find((item) => item?.symbol === currencyName.toLowerCase())!;
 }

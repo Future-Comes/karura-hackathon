@@ -1,6 +1,7 @@
 export * from "./swap.model"
 export * from "./liquidityChange.model"
 export * from "./_liquidityChangeReason"
+export * from "./coinGecko.model"
 export * from "./currency.model"
 export * from "./currPrice.model"
 export * from "./currVolumeDay.model"

@@ -1,4 +1,5 @@
-import {Entity as Entity_, Column as Column_, PrimaryColumn as PrimaryColumn_, OneToMany as OneToMany_} from "typeorm"
+import {Entity as Entity_, Column as Column_, PrimaryColumn as PrimaryColumn_, OneToOne as OneToOne_, Index as Index_, JoinColumn as JoinColumn_, OneToMany as OneToMany_} from "typeorm"
+import {CoinGecko} from "./coinGecko.model"
 import {CurrVolumeDay} from "./currVolumeDay.model"
 import {CurrLiquidity} from "./currLiquidity.model"
 import {CurrPrice} from "./currPrice.model"
@@ -19,8 +20,10 @@ export class Currency {
   @Column_("text", {nullable: false})
   currencyName!: string
 
-  @Column_("text", {nullable: true})
-  coinGeckoID!: string | undefined | null
+  @Index_({unique: true})
+  @OneToOne_(() => CoinGecko, {nullable: false})
+  @JoinColumn_()
+  coinGecko!: CoinGecko
 
   @OneToMany_(() => CurrVolumeDay, e => e.currency)
   volumeDayHistory!: CurrVolumeDay[]

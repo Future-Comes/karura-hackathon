@@ -1,6 +1,6 @@
 import {Store} from "@subsquid/substrate-processor";
-import {Currency, CurrLiquidity, CurrPrice, CurrVolumeDay} from "../model";
-import {get, getCoinGeckoId, getPriceUSD, getUsdPrice, getVolumeDay} from "../mappings/utility";
+import {CoinGecko, Currency, CurrLiquidity, CurrPrice, CurrVolumeDay} from "../model";
+import {getCoinGecko, getPriceUSD, getUsdPrice, getVolumeDay} from "../mappings/utility";
 import {CurrencyId} from "../types/v2041";
 
 export function getTokenName(currency: CurrencyId): string | null {
@@ -13,19 +13,35 @@ export function getTokenName(currency: CurrencyId): string | null {
     return null;
 }
 
+export async function getCurrency(store: Store, currencyName: string): Promise<Currency | null> {
+    const currency = await store
+        .getRepository(Currency)
+        .createQueryBuilder('c')
+        .where(
+            'c.currencyName = :currencyName',
+            { currencyName }
+        )
+        .leftJoinAndSelect('c.coinGecko', 'coinGecko')
+        .getOne();
+    
+    return currency || null;
+}
+
 export async function createCurrency(store: Store, currencyName: string): Promise<Currency> {
-    const id = 'token-' + currencyName;
+    const currency = await getCurrency(store, currencyName);
 
-    let currency = await get(store, Currency, id)
-
-    if (!currency) {
-        const coinGeckoID = await getCoinGeckoId(currencyName);
-        const props = { id, currencyName, coinGeckoID: coinGeckoID || null }
-
-        currency = await store.save(new Currency(props))
+    if (currency) {
+        return currency;
     }
 
-    return currency;
+    const dataCoinGecko = await getCoinGecko(currencyName);
+    const { id, name, symbol } = dataCoinGecko;
+    const props = currencyName === 'KUSD'
+        ? { id: 'tether', name: 'Karura USD', symbol: currencyName }
+        : { id, name, symbol };
+    const coinGecko = await store.save(new CoinGecko(props));
+
+    return store.save(new Currency({ id: currencyName, coinGecko, currencyName }))
 }
 
 export async function createCurrPrice(store: Store, currency: Currency, timestamp: bigint): Promise<void> {

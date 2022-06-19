@@ -78,34 +78,36 @@ export async function handleSwap(ctx: EventHandlerContext): Promise<void> {
 
     const swaps = await getSwaps(store, propPath, liquidityChanges);
 
-    for (const swap of swaps) {
-        const { step, fromCurrency, fromAmount, toCurrency, toAmount } = swap;
+    if (propPath.length === liquidityChanges.length) {
+        for (const swap of swaps) {
+            const { step, fromCurrency, fromAmount, toCurrency, toAmount } = swap;
 
-        await createSwap(ctx, swap);
+            await createSwap(ctx, swap);
 
-        await createCurrPrice(store, fromCurrency, timestamp);
-        await createCurrPrice(store, toCurrency, timestamp);
+            await createCurrPrice(store, fromCurrency, timestamp);
+            await createCurrPrice(store, toCurrency, timestamp);
 
-        await createCurrVolumeDay(store, fromCurrency, timestamp);
-        await createCurrVolumeDay(store, toCurrency, timestamp);
+            await createCurrVolumeDay(store, fromCurrency, timestamp);
+            await createCurrVolumeDay(store, toCurrency, timestamp);
 
-        const [currencyZero, currencyOne] = getTradingPair(fromCurrency, toCurrency)
-        const balanceZero = currencyZero.currencyName === fromCurrency.currencyName ? fromAmount : -toAmount
-        const balanceOne = currencyOne.currencyName === fromCurrency.currencyName ? fromAmount : -toAmount
+            const [currencyZero, currencyOne] = getTradingPair(fromCurrency, toCurrency)
+            const balanceZero = currencyZero.currencyName === fromCurrency.currencyName ? fromAmount : -toAmount
+            const balanceOne = currencyOne.currencyName === fromCurrency.currencyName ? fromAmount : -toAmount
 
-        const pool = await createPool(store, currencyZero, currencyOne);
-        await addPoolVolume(store, pool, timestamp);
+            const pool = await createPool(store, currencyZero, currencyOne);
+            await addPoolVolume(store, pool, timestamp);
 
-        await addLiquidityChange(
-            ctx,
-            LiquidityChangeReason.SWAP,
-            pool,
-            currencyZero,
-            currencyOne,
-            balanceZero,
-            balanceOne,
-            step
-        )
+            await addLiquidityChange(
+                ctx,
+                LiquidityChangeReason.SWAP,
+                pool,
+                currencyZero,
+                currencyOne,
+                balanceZero,
+                balanceOne,
+                step
+            )
+        }
     }
 }
 

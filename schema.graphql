@@ -40,11 +40,18 @@ enum LiquidityChangeReason {
   REMOVE
 }
 
+type CoinGecko @entity {
+  id: ID!
+  symbol: String!
+  name: String!
+  currency: Currency @derivedFrom(field: "coinGecko")
+}
+
 type Currency @entity {
   "Currency address"
   id: ID!
   currencyName: String!
-  coinGeckoID: String
+  coinGecko: CoinGecko! @unique
   volumeDayHistory: [CurrVolumeDay!]! @derivedFrom(field: "currency")
   liquidityHistory: [CurrLiquidity!]! @derivedFrom(field: "currency")
   priceHistory: [CurrPrice!]! @derivedFrom(field: "currency")
