@@ -79,11 +79,11 @@ export const getUsdPrice = async (store: Store, currency: Currency, timestamp: b
     }
 
     // Search for a price in a service "CoinGecko"
-    if (coinGecko?.id && coinGecko?.updatedAt) {
+    if (coinGecko?.id) {
         const dateOne = dayjs(Number(coinGecko.updatedAt));
         const dateTwo = dayjs(Number(timestamp));
 
-        if (formatDate(dateOne).diff(formatDate(dateTwo)) !== 0) {
+        if (!coinGecko?.updatedAt || formatDate(dateOne).diff(formatDate(dateTwo)) !== 0) {
             const date = dayjs(Number(timestamp)).format('DD-MM-YYYY');
 
             try {
@@ -95,7 +95,7 @@ export const getUsdPrice = async (store: Store, currency: Currency, timestamp: b
                 await store.update(
                     CoinGecko,
                         { id: coinGecko.id },
-                    { updatedAt: formatDate(dateOne).unix(), price }
+                    { updatedAt: BigInt(timestamp), price }
                 )
 
                 if (price) {

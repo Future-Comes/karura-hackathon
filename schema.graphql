@@ -45,7 +45,7 @@ type CoinGecko @entity {
   symbol: String!
   name: String!
   price: Float
-  updatedAt: Int
+  updatedAt: BigInt
   currency: Currency @derivedFrom(field: "coinGecko")
 }
 

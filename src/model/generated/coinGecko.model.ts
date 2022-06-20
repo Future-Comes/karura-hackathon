@@ -1,4 +1,5 @@
 import {Entity as Entity_, Column as Column_, PrimaryColumn as PrimaryColumn_, OneToOne as OneToOne_} from "typeorm"
+import * as marshal from "./marshal"
 import {Currency} from "./currency.model"
 
 @Entity_()
@@ -19,8 +20,8 @@ export class CoinGecko {
   @Column_("numeric", {nullable: true})
   price!: number | undefined | null
 
-  @Column_("int4", {nullable: true})
-  updatedAt!: number | undefined | null
+  @Column_("numeric", {transformer: marshal.bigintTransformer, nullable: true})
+  updatedAt!: bigint | undefined | null
 
   @OneToOne_(() => Currency)
   currency!: Currency | undefined | null

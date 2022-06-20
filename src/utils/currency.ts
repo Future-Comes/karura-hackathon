@@ -2,6 +2,7 @@ import {Store} from "@subsquid/substrate-processor";
 import {CoinGecko, Currency, CurrLiquidity, CurrPrice, CurrVolumeDay} from "../model";
 import {getCoinGecko, getPriceUSD, getUsdPrice, getVolumeDay} from "../mappings/utility";
 import {CurrencyId} from "../types/v2041";
+import {timeout} from "./base";
 
 export function getTokenName(currency: CurrencyId): string | null {
     const type = currency.__kind;
@@ -40,6 +41,9 @@ export async function createCurrency(store: Store, currencyName: string): Promis
         props = { id: 'tether', name: 'Karura USD', symbol: currencyName };
     } else {
         const dataCoinGecko = await getCoinGecko(currencyName);
+
+        await timeout(1000);
+
         const { id, name, symbol } = dataCoinGecko;
         props = { id, name, symbol }
     }
