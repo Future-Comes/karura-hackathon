@@ -16,6 +16,12 @@ export class CoinGecko {
   @Column_("text", {nullable: false})
   name!: string
 
+  @Column_("numeric", {nullable: true})
+  price!: number | undefined | null
+
+  @Column_("int4", {nullable: true})
+  updatedAt!: number | undefined | null
+
   @OneToOne_(() => Currency)
   currency!: Currency | undefined | null
 }

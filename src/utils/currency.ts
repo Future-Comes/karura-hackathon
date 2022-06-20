@@ -34,11 +34,16 @@ export async function createCurrency(store: Store, currencyName: string): Promis
         return currency;
     }
 
-    const dataCoinGecko = await getCoinGecko(currencyName);
-    const { id, name, symbol } = dataCoinGecko;
-    const props = currencyName === 'KUSD'
-        ? { id: 'tether', name: 'Karura USD', symbol: currencyName }
-        : { id, name, symbol };
+    let props;
+
+    if (currencyName === 'KUSD') {
+        props = { id: 'tether', name: 'Karura USD', symbol: currencyName };
+    } else {
+        const dataCoinGecko = await getCoinGecko(currencyName);
+        const { id, name, symbol } = dataCoinGecko;
+        props = { id, name, symbol }
+    }
+    
     const coinGecko = await store.save(new CoinGecko(props));
 
     return store.save(new Currency({ id: currencyName, coinGecko, currencyName }))

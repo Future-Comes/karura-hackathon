@@ -1,8 +1,8 @@
-module.exports = class Init1655610429125 {
-  name = 'Init1655610429125'
+module.exports = class Init1655707681300 {
+  name = 'Init1655707681300'
 
   async up(db) {
-    await db.query(`CREATE TABLE "coin_gecko" ("id" character varying NOT NULL, "symbol" text NOT NULL, "name" text NOT NULL, CONSTRAINT "PK_f8402c1abb7f2fc7f86739bb855" PRIMARY KEY ("id"))`)
+    await db.query(`CREATE TABLE "coin_gecko" ("id" character varying NOT NULL, "symbol" text NOT NULL, "name" text NOT NULL, "price" numeric, "updated_at" integer, CONSTRAINT "PK_f8402c1abb7f2fc7f86739bb855" PRIMARY KEY ("id"))`)
     await db.query(`CREATE TABLE "curr_volume_day" ("id" character varying NOT NULL, "volume_day_native" numeric NOT NULL, "volume_day_usd" numeric NOT NULL, "timestamp" numeric NOT NULL, "currency_id" character varying NOT NULL, CONSTRAINT "PK_8ec9c8475cb43665ae52199e606" PRIMARY KEY ("id"))`)
     await db.query(`CREATE INDEX "IDX_93ac589e3c87a5c6510a690dd2" ON "curr_volume_day" ("currency_id") `)
     await db.query(`CREATE TABLE "curr_liquidity" ("id" character varying NOT NULL, "timestamp" numeric NOT NULL, "liquidity" numeric NOT NULL, "liquidity_usd" numeric NOT NULL, "currency_id" character varying NOT NULL, CONSTRAINT "PK_c80cc5b8686e0894e99e6edad77" PRIMARY KEY ("id"))`)

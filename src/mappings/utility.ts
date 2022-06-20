@@ -1,9 +1,8 @@
-import dayjs from 'dayjs'
+import dayjs, {Dayjs} from 'dayjs'
 import axios from 'axios'
 import {Store} from "@subsquid/substrate-processor"
 import {CurrencyId} from "../types/v2041"
-import {Currency, CurrPrice, Swap} from "../model"
-import {timeout} from "../utils/base";
+import {CoinGecko, Currency, CurrPrice, Swap} from "../model"
 
 interface CurrencyCoinGecko {
     id: string,
@@ -80,18 +79,35 @@ export const getUsdPrice = async (store: Store, currency: Currency, timestamp: b
     }
 
     // Search for a price in a service "CoinGecko"
-    if (coinGecko?.id) {
-        const date = dayjs(Number(timestamp)).format('DD-MM-YYYY');
+    if (coinGecko?.id && coinGecko?.updatedAt) {
+        const dateOne = dayjs(Number(coinGecko.updatedAt));
+        const dateTwo = dayjs(Number(timestamp));
 
-        const url = `https://api.coingecko.com/api/v3/coins/${coinGecko.id}/history?date=${date}`;
-        const { data } = await axios.get(url);
+        if (formatDate(dateOne).diff(formatDate(dateTwo)) !== 0) {
+            const date = dayjs(Number(timestamp)).format('DD-MM-YYYY');
 
-        await timeout(1300);
+            try {
+                const url = `https://api.coingecko.com/api/v3/coins/${coinGecko.id}/history?date=${date}`;
+                const { data } = await axios.get(url);
 
-        const price = data.market_data?.current_price?.usd;
+                const price = data.market_data?.current_price?.usd;
 
-        if (price) {
-            return price;
+                await store.update(
+                    CoinGecko,
+                        { id: coinGecko.id },
+                    { updatedAt: formatDate(dateOne).unix(), price }
+                )
+
+                if (price) {
+                    return price;
+                }
+            } catch (e) {
+                console.log(e)
+            }
+        }
+
+        if (coinGecko.price) {
+            return coinGecko.price;
         }
     }
 
@@ -151,7 +167,10 @@ export const getPriceUSD = async (
 
 export const getCoinGecko = async (currencyName: string): Promise<CurrencyCoinGecko> => {
     const { data }: { data: CurrencyCoinGecko[] } = await axios.get('https://api.coingecko.com/api/v3/coins/list');
-    await timeout(1000);
 
     return data.find((item) => item?.symbol === currencyName.toLowerCase())!;
+}
+
+export const formatDate = (date: Dayjs): Dayjs  => {
+    return date.hour(0).minute(0).second(0).millisecond(0);
 }
