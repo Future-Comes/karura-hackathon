@@ -1,0 +1,24 @@
+before_script:
+  - export PATH=$PATH:/usr/local/bin
+
+stages:
+ - prod
+
+variables:
+  IMAGE: "karura-dashboard"
+
+prod:
+  stage: prod 
+  script:
+    - sh .deploy/envs.sh
+    - docker build -f .deploy/Dockerfile -t harbor.futurecomes.net/futurecomes/$IMAGE:PROD__$CI_COMMIT_BRANCH  .
+    - docker push harbor.futurecomes.net/futurecomes/$IMAGE:PROD__$CI_COMMIT_BRANCH
+    - ansible-playbook .deploy/deploy.yml --extra-vars "IMAGE=$IMAGE CI_COMMIT_BRANCH=$CI_COMMIT_BRANCH GQL_PORT=$GQL_PORT PROCESSOR_PROMETHEUS_PORT=$PROCESSOR_PROMETHEUS_PORT"
+#  environment:
+#    name: prod
+  only:
+    - master
+  tags:
+    - builder
+  when: manual
+  allow_failure: false

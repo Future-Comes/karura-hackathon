@@ -1,0 +1,14 @@
+{
+  "outDir": "src/types",
+  "chainVersions": "karuraVersions.json",
+  "typesBundle": "karura",
+  "events": [
+    "dex.Swap",
+    "dex.AddLiquidity",
+    "dex.RemoveLiquidity"
+  ],
+  "storage" : [
+    "Dex.LiquidityPool"
+  ],
+  "calls": []
+}

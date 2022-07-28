@@ -1,0 +1,109 @@
+type Swap @entity {
+  id: ID!
+  timestamp: BigInt!
+  blockNumber: Int!
+  eventIdx: Int!
+  step: Int!
+  fromCurrency: Currency!
+  toCurrency: Currency!
+  fromAmount: BigInt!
+  toAmount: BigInt!
+}
+
+
+type LiquidityChange @entity {
+  "LiquidityChange address"
+  id: ID!
+  timestamp: BigInt!
+  blockNumber: Int!
+  eventIdx: Int!
+  step: Int!
+  reason: LiquidityChangeReason!
+  currencyZero: Currency!
+  currencyOne: Currency!
+  amountZero: BigInt!
+  amountOne: BigInt!
+  balanceZero: BigInt!
+  balanceOne: BigInt!
+  pool: Pool!
+  totalValue: Float!
+  hash: String
+  eventId: String!
+  account: String
+}
+
+
+enum LiquidityChangeReason {
+  INIT
+  SWAP
+  ADD
+  REMOVE
+}
+
+type CoinGecko @entity {
+  id: ID!
+  symbol: String!
+  name: String!
+  price: Float
+  updatedAt: BigInt
+}
+
+type Currency @entity {
+  "Currency address"
+  id: ID!
+  currencyName: String!
+  coinGecko: CoinGecko
+  volumeDayHistory: [CurrVolumeDay!]! @derivedFrom(field: "currency")
+  liquidityHistory: [CurrLiquidity!]! @derivedFrom(field: "currency")
+  priceHistory: [CurrPrice!]! @derivedFrom(field: "currency")
+  transactions: [LiquidityChange!]! @derivedFrom(field: "currencyZero")
+}
+
+type CurrPrice @entity {
+  id: ID!
+  currency: Currency!
+  usdPrice: Float!
+  timestamp: BigInt!
+}
+
+type CurrVolumeDay @entity {
+  id: ID!
+  currency: Currency!
+  volumeDayNative: BigInt!
+  volumeDayUSD: Float!
+  timestamp: BigInt!
+}
+
+type CurrLiquidity @entity {
+  id: ID!
+  currency: Currency!
+  timestamp: BigInt!
+  liquidity: BigInt!
+  liquidityUSD: Float!
+}
+
+type Pool @entity {
+  "Pool address"
+  id: ID!
+  currencyZero: Currency!
+  currencyOne: Currency!
+  volumeDaysDay: [PoolVolumeDay!]! @derivedFrom(field: "pool")
+  liquidityHistory: [PoolLiquidity!]! @derivedFrom(field: "pool")
+  poolOperations: [LiquidityChange!]! @derivedFrom(field: "pool")
+}
+
+type PoolVolumeDay @entity {
+  id: ID!
+  pool: Pool!
+  volumeDayUSD: Float!
+  timestamp: BigInt!
+}
+
+type PoolLiquidity @entity {
+  id: ID!
+  pool: Pool!
+  usdPriceZero: Float!
+  usdPriceOne: Float!
+  usdTotalLiquidity: Float!
+  timestamp: BigInt!
+}
