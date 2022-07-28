@@ -9,6 +9,7 @@ import * as v2001 from "../types/v2001";
 import * as v2011 from "../types/v2011";
 import * as v2022 from "../types/v2022";
 import * as v2041 from "../types/v2041";
+import * as v2080 from "../types/v2080";
 import {EventHandlerContext, Store} from "@subsquid/substrate-processor";
 import {Currency, LiquidityChange, LiquidityChangeReason, Pool} from "../model";
 import {createCurrLiquidity} from "./currency";
@@ -44,8 +45,11 @@ export async function getLiquidityPool(ctx : StorageContext, key:[CurrencyId,Cur
     if (storage.isV2022) {
         return storage.getAsV2022(key as [v2022.CurrencyId, v2022.CurrencyId])
     }
+    if (storage.isV2041) {
+        return storage.getAsV2041(key as [v2041.CurrencyId, v2041.CurrencyId])
+    }
 
-    return storage.getAsV2041(key as [v2041.CurrencyId, v2041.CurrencyId])
+    return storage.getAsV2080(key as [v2080.CurrencyId, v2080.CurrencyId])
 }
 
 export async function addLiquidityChange(
