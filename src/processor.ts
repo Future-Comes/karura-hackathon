@@ -2,10 +2,8 @@ import * as handlers from './mappings'
 import { lookupArchive } from "@subsquid/archive-registry";
 import { SubstrateProcessor } from '@subsquid/substrate-processor';
 
-const port = process.env.PROCESSOR_PROMETHEUS_PORT ? Number(process.env.PROCESSOR_PROMETHEUS_PORT) : 54142
 const processor = new SubstrateProcessor("karura_swap");
 
-processor.setPrometheusPort(port)
 processor.setBatchSize(500);
 processor.setDataSource({
   archive: lookupArchive("karura")[0].url,
