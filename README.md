@@ -126,9 +126,9 @@ fetch corresponding metadata.
 
 ```bash
 npx squid-substrate-metadata-explorer \
-  --chain wss://kusama-rpc.polkadot.io \
-  --archive https://kusama.indexer.gc.subsquid.io/v4/graphql \
-  --out kusamaVersions.json
+  --chain wss://karura.api.onfinality.io/public-ws \
+  --archive https://karura.indexer.gc.subsquid.io/v4/graphql \
+  --out karuraVersions.json
 ```
 
 In the above command `--archive` parameter is optional, but it speeds up the process

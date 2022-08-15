@@ -5,6 +5,8 @@ import {CurrencyId} from "../types/v2041"
 import {addPoolVolume, createPool} from "../utils/pools";
 import {createCurrency, getTokenName} from "../utils/currency";
 import {addLiquidityChange} from "../utils/liquidity";
+import {formatDate} from "./utility";
+import dayjs from "dayjs";
 
 interface RemoveLiquidityParams {
     who: Uint8Array,
@@ -72,8 +74,14 @@ async function getRemoveLiquidityParams(ctx: EventHandlerContext): Promise<Remov
         const cur1 = currency1 as CurrencyId
         return {who,cur0,pool0,cur1,pool1,shareDecrement}
     }
+    if (event.isV2041) {
+        const {who,currency0,pool0,currency1,pool1,shareDecrement} = event.asV2041
+        const cur0 = currency0 as CurrencyId
+        const cur1 = currency1 as CurrencyId
+        return {who,cur0,pool0,cur1,pool1,shareDecrement}
+    }
     
-    const {who,currency0,pool0,currency1,pool1,shareDecrement} = event.asV2041
+    const {who,currency0,pool0,currency1,pool1,shareDecrement} = event.asV2080
     const cur0 = currency0 as CurrencyId
     const cur1 = currency1 as CurrencyId
 
@@ -85,6 +93,7 @@ export async function handleRemoveLiquidity(ctx : EventHandlerContext): Promise<
     const {store, block} = ctx
 
     const timestamp = BigInt(block.timestamp);
+    const dateNow = formatDate(dayjs(Number(timestamp)));
 
     const { cur0, pool0, cur1, pool1 } = await getRemoveLiquidityParams(ctx)
 
@@ -97,7 +106,7 @@ export async function handleRemoveLiquidity(ctx : EventHandlerContext): Promise<
     const currencyOne = await createCurrency(store, currencyOneName);
 
     const pool = await createPool(store, currencyZero, currencyOne);
-    await addPoolVolume(store, pool, timestamp);
+    await addPoolVolume(store, pool, dateNow);
 
     await addLiquidityChange(
         ctx,

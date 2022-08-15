@@ -10,6 +10,7 @@ import * as v2011 from './v2011'
 import * as v2012 from './v2012'
 import * as v2022 from './v2022'
 import * as v2041 from './v2041'
+import * as v2080 from './v2080'
 
 export class DexAddLiquidityEvent {
   constructor(private ctx: EventContext) {
@@ -180,14 +181,23 @@ export class DexAddLiquidityEvent {
     return this.ctx._chain.decodeEvent(this.ctx.event)
   }
 
-  get isLatest(): boolean {
-    deprecateLatest()
-    return this.isV2041
+  get isV2080(): boolean {
+    return this.ctx._chain.getEventHash('dex.AddLiquidity') === '7b1eb44be8910ce2b63c54a4ad7f3461ce0e2f5a91a69ba8bd62ab11f74e8109'
   }
 
-  get asLatest(): {who: v2041.AccountId32, currency0: v2041.CurrencyId, pool0: bigint, currency1: v2041.CurrencyId, pool1: bigint, shareIncrement: bigint} {
+  get asV2080(): {who: v2080.AccountId32, currency0: v2080.CurrencyId, pool0: bigint, currency1: v2080.CurrencyId, pool1: bigint, shareIncrement: bigint} {
+    assert(this.isV2080)
+    return this.ctx._chain.decodeEvent(this.ctx.event)
+  }
+
+  get isLatest(): boolean {
     deprecateLatest()
-    return this.asV2041
+    return this.isV2080
+  }
+
+  get asLatest(): {who: v2080.AccountId32, currency0: v2080.CurrencyId, pool0: bigint, currency1: v2080.CurrencyId, pool1: bigint, shareIncrement: bigint} {
+    deprecateLatest()
+    return this.asV2080
   }
 }
 
@@ -374,14 +384,23 @@ export class DexRemoveLiquidityEvent {
     return this.ctx._chain.decodeEvent(this.ctx.event)
   }
 
-  get isLatest(): boolean {
-    deprecateLatest()
-    return this.isV2041
+  get isV2080(): boolean {
+    return this.ctx._chain.getEventHash('dex.RemoveLiquidity') === '3465143ee5fc964a6cd7aff4238682a96331848639b767e43b59591dfaa5a4db'
   }
 
-  get asLatest(): {who: v2041.AccountId32, currency0: v2041.CurrencyId, pool0: bigint, currency1: v2041.CurrencyId, pool1: bigint, shareDecrement: bigint} {
+  get asV2080(): {who: v2080.AccountId32, currency0: v2080.CurrencyId, pool0: bigint, currency1: v2080.CurrencyId, pool1: bigint, shareDecrement: bigint} {
+    assert(this.isV2080)
+    return this.ctx._chain.decodeEvent(this.ctx.event)
+  }
+
+  get isLatest(): boolean {
     deprecateLatest()
-    return this.asV2041
+    return this.isV2080
+  }
+
+  get asLatest(): {who: v2080.AccountId32, currency0: v2080.CurrencyId, pool0: bigint, currency1: v2080.CurrencyId, pool1: bigint, shareDecrement: bigint} {
+    deprecateLatest()
+    return this.asV2080
   }
 }
 
@@ -554,13 +573,22 @@ export class DexSwapEvent {
     return this.ctx._chain.decodeEvent(this.ctx.event)
   }
 
-  get isLatest(): boolean {
-    deprecateLatest()
-    return this.isV2041
+  get isV2080(): boolean {
+    return this.ctx._chain.getEventHash('dex.Swap') === '4c03d217dc4d8f5de423b94e9762ca62853500c2a3a0a978bf94ae9a42df6632'
   }
 
-  get asLatest(): {trader: v2041.AccountId32, path: v2041.CurrencyId[], liquidityChanges: bigint[]} {
+  get asV2080(): {trader: v2080.AccountId32, path: v2080.CurrencyId[], liquidityChanges: bigint[]} {
+    assert(this.isV2080)
+    return this.ctx._chain.decodeEvent(this.ctx.event)
+  }
+
+  get isLatest(): boolean {
     deprecateLatest()
-    return this.asV2041
+    return this.isV2080
+  }
+
+  get asLatest(): {trader: v2080.AccountId32, path: v2080.CurrencyId[], liquidityChanges: bigint[]} {
+    deprecateLatest()
+    return this.asV2080
   }
 }

@@ -16,11 +16,11 @@ export class CurrLiquidity {
   currency!: Currency
 
   @Column_("numeric", {transformer: marshal.bigintTransformer, nullable: false})
-  timestamp!: bigint
-
-  @Column_("numeric", {transformer: marshal.bigintTransformer, nullable: false})
   liquidity!: bigint
 
   @Column_("numeric", {nullable: false})
   liquidityUSD!: number
+
+  @Column_("numeric", {transformer: marshal.bigintTransformer, nullable: false})
+  timestamp!: bigint
 }

@@ -5,6 +5,8 @@ import {addLiquidityChange} from "../utils/liquidity"
 import {CurrencyId} from "../types/v2041"
 import {addPoolVolume, createPool} from "../utils/pools";
 import {createCurrency, getTokenName} from "../utils/currency";
+import {formatDate} from "./utility";
+import dayjs from "dayjs";
 
 interface AddLiquidityParams {
     who: Uint8Array,
@@ -72,8 +74,14 @@ async function getAddLiquidityParams(ctx: EventHandlerContext): Promise<AddLiqui
         const cur1 = currency1 as CurrencyId
         return {who,cur0,pool0,cur1,pool1,shareIncrement}
     }
+    if (event.isV2041) {
+        const {who,currency0,pool0,currency1,pool1,shareIncrement} = event.asV2041
+        const cur0 = currency0 as CurrencyId
+        const cur1 = currency1 as CurrencyId
+        return {who,cur0,pool0,cur1,pool1,shareIncrement}
+    }
 
-    const {who,currency0,pool0,currency1,pool1,shareIncrement} = event.asV2041
+    const {who,currency0,pool0,currency1,pool1,shareIncrement} = event.asV2080
     const cur0 = currency0 as CurrencyId
     const cur1 = currency1 as CurrencyId
     return {who,cur0,pool0,cur1,pool1,shareIncrement}
@@ -83,6 +91,7 @@ export async function handleAddLiquidity(ctx : EventHandlerContext): Promise<voi
     const { store, block } = ctx;
 
     const timestamp = BigInt(block.timestamp);
+    const dateNow = formatDate(dayjs(Number(timestamp)));
 
     const {cur0, pool0, cur1, pool1} = await getAddLiquidityParams(ctx);
 
@@ -95,7 +104,7 @@ export async function handleAddLiquidity(ctx : EventHandlerContext): Promise<voi
     const currencyOne = await createCurrency(store, currencyOneName);
 
     const pool = await createPool(store, currencyZero, currencyOne);
-    await addPoolVolume(store, pool, timestamp);
+    await addPoolVolume(store, pool, dateNow);
 
     await addLiquidityChange(
         ctx,

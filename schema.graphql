@@ -42,18 +42,17 @@ enum LiquidityChangeReason {
 
 type CoinGecko @entity {
   id: ID!
-  symbol: String!
+  symbol: String! @unique
   name: String!
   price: Float
-  updatedAt: Int
-  currency: Currency @derivedFrom(field: "coinGecko")
+  updatedAt: BigInt
 }
 
 type Currency @entity {
   "Currency address"
   id: ID!
   currencyName: String!
-  coinGecko: CoinGecko! @unique
+  coinGecko: CoinGecko
   volumeDayHistory: [CurrVolumeDay!]! @derivedFrom(field: "currency")
   liquidityHistory: [CurrLiquidity!]! @derivedFrom(field: "currency")
   priceHistory: [CurrPrice!]! @derivedFrom(field: "currency")
@@ -78,9 +77,9 @@ type CurrVolumeDay @entity {
 type CurrLiquidity @entity {
   id: ID!
   currency: Currency!
-  timestamp: BigInt!
   liquidity: BigInt!
   liquidityUSD: Float!
+  timestamp: BigInt!
 }
 
 type Pool @entity {

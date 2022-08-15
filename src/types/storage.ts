@@ -9,6 +9,7 @@ import * as v2010 from './v2010'
 import * as v2011 from './v2011'
 import * as v2022 from './v2022'
 import * as v2041 from './v2041'
+import * as v2080 from './v2080'
 
 export class DexLiquidityPoolStorage {
   constructor(private ctx: StorageContext) {}
@@ -226,6 +227,20 @@ export class DexLiquidityPoolStorage {
 
   async getManyAsV2041(keys: v2041.TradingPair[]): Promise<([bigint, bigint])[]> {
     assert(this.isV2041)
+    return this.ctx._chain.queryStorage(this.ctx.block.hash, 'Dex', 'LiquidityPool', keys.map(k => [k]))
+  }
+
+  get isV2080() {
+    return this.ctx._chain.getStorageItemTypeHash('Dex', 'LiquidityPool') === 'be63357d00c5168c6012b950b0bc34e88d68259bd85a2de34112fa31095161c4'
+  }
+
+  async getAsV2080(key: v2080.TradingPair): Promise<[bigint, bigint]> {
+    assert(this.isV2080)
+    return this.ctx._chain.getStorage(this.ctx.block.hash, 'Dex', 'LiquidityPool', key)
+  }
+
+  async getManyAsV2080(keys: v2080.TradingPair[]): Promise<([bigint, bigint])[]> {
+    assert(this.isV2080)
     return this.ctx._chain.queryStorage(this.ctx.block.hash, 'Dex', 'LiquidityPool', keys.map(k => [k]))
   }
 

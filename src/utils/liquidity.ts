@@ -9,12 +9,14 @@ import * as v2001 from "../types/v2001";
 import * as v2011 from "../types/v2011";
 import * as v2022 from "../types/v2022";
 import * as v2041 from "../types/v2041";
+import * as v2080 from "../types/v2080";
 import {EventHandlerContext, Store} from "@subsquid/substrate-processor";
 import {Currency, LiquidityChange, LiquidityChangeReason, Pool} from "../model";
 import {createCurrLiquidity} from "./currency";
 import assert from "assert";
-import {get, getCurrencyId, getPriceUSD} from "../mappings/utility";
+import {formatDate, get, getCurrencyId, getPriceUSD} from "../mappings/utility";
 import {addPoolLiquidity} from "./pools";
+import dayjs from "dayjs";
 
 
 export async function getLiquidityPool(ctx : StorageContext, key:[CurrencyId,CurrencyId]): Promise<[bigint, bigint]>{
@@ -44,8 +46,11 @@ export async function getLiquidityPool(ctx : StorageContext, key:[CurrencyId,Cur
     if (storage.isV2022) {
         return storage.getAsV2022(key as [v2022.CurrencyId, v2022.CurrencyId])
     }
+    if (storage.isV2041) {
+        return storage.getAsV2041(key as [v2041.CurrencyId, v2041.CurrencyId])
+    }
 
-    return storage.getAsV2041(key as [v2041.CurrencyId, v2041.CurrencyId])
+    return storage.getAsV2080(key as [v2080.CurrencyId, v2080.CurrencyId])
 }
 
 export async function addLiquidityChange(
@@ -60,12 +65,13 @@ export async function addLiquidityChange(
 ): Promise<void> {
     const {store, event, block} = ctx
     const timestamp = BigInt(block.timestamp);
+    const dateNow = formatDate(dayjs(Number(timestamp)));
     const account = event.extrinsic?.signer;
     const hash = event.extrinsic?.hash;
     const eventId = `${event.blockNumber}-${event.indexInBlock}`
 
-    const priceZero = await getPriceUSD(store, currencyZero, amountZero, timestamp);
-    const priceOne = await getPriceUSD(store, currencyZero, amountOne, timestamp);
+    const priceZero = await getPriceUSD(store, currencyZero, amountZero, dateNow);
+    const priceOne = await getPriceUSD(store, currencyZero, amountOne, dateNow);
     const totalValue = priceZero + priceOne || 0;
 
     const pair = currencyZero.currencyName + '-' + currencyOne.currencyName
@@ -96,18 +102,18 @@ export async function addLiquidityChange(
             timestamp: BigInt(block.timestamp - 1)
         }));
 
-        await createCurrLiquidity(store, currencyZero, balanceZero, BigInt(block.timestamp - 1));
-        await createCurrLiquidity(store, currencyOne, balanceOne, BigInt(block.timestamp - 1));
-        await addPoolLiquidity(store, pool, balanceZero, balanceOne, BigInt(block.timestamp - 1));
+        await createCurrLiquidity(store, currencyZero, balanceZero, dateNow);
+        await createCurrLiquidity(store, currencyOne, balanceOne, dateNow);
+        await addPoolLiquidity(store, pool, balanceZero, balanceOne, dateNow);
     }
 
     const balance = await getPrevBalance(store, currencyZero, currencyOne)
     const balanceZero = balance[0] + amountZero;
     const balanceOne = balance[1] + amountOne;
 
-    await createCurrLiquidity(store, currencyZero, balanceZero, timestamp);
-    await createCurrLiquidity(store, currencyOne, balanceOne, timestamp);
-    await addPoolLiquidity(store, pool, balanceZero, balanceOne, timestamp);
+    await createCurrLiquidity(store, currencyZero, balanceZero, dateNow);
+    await createCurrLiquidity(store, currencyOne, balanceOne, dateNow);
+    await addPoolLiquidity(store, pool, balanceZero, balanceOne, dateNow);
 
     let change = new LiquidityChange({
         id: swapStep ? event.id + '-' + swapStep : event.id,

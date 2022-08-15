@@ -1,0 +1,16 @@
+---
+- name: Deploy karura dashboard
+  hosts: 
+    - karura
+  tasks:
+    - name: Delivery Docker-compose file to server
+      template:
+        src: "docker-compose.j2"
+        dest: /opt/app/docker-compose-{{ IMAGE }}.yml
+        mode: u+rw,g_rw,o+r
+
+    - name: Pull new image
+      shell: docker-compose -f /opt/app/docker-compose-{{ IMAGE }}.yml pull
+
+    - name: Run new containers
+      shell: docker-compose --compatibility -f /opt/app/docker-compose-{{ IMAGE }}.yml up -d

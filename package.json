@@ -1,5 +1,7 @@
 {
-  "name": "kusama-balances",
+  "name": "karura-defi-dashboard-backend",
+  "description": "FutureComes has developed a defi dashboard for the Karura parachain in the Kusama network",
+  "version": "1.0.1",
   "private": true,
   "scripts": {
     "build": "rm -rf lib && tsc",

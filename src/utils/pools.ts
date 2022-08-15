@@ -1,6 +1,7 @@
 import {Store} from "@subsquid/substrate-processor";
 import {Currency, Pool, PoolLiquidity, PoolVolumeDay, Swap} from "../model";
 import {getPriceUSD} from "../mappings/utility";
+import {Dayjs} from "dayjs";
 
 export async function createPool(store: Store, currencyZero: Currency, currencyOne: Currency): Promise<Pool> {
     const id = currencyZero.currencyName + '-' + currencyOne.currencyName;
@@ -26,7 +27,7 @@ export const getVolumeDay = async (
     store: Store,
     currencyZero: Currency,
     currencyOne: Currency,
-    timestamp: bigint
+    dateNow: Dayjs
 ): Promise<bigint> => {
     const query: Swap[] = await store
         .getRepository(Swap)
@@ -38,10 +39,7 @@ export const getVolumeDay = async (
                 .where('s.from_currency_id = :currencyZero AND s.to_currency_id = :currencyOne')
                 .orWhere('s.from_currency_id = :currencyZero AND s.to_currency_id = :currencyOne')
         }, { currencyZero: currencyZero.id, currencyOne: currencyOne.id })
-        .andWhere(
-            's.timestamp >= :timestamp',
-            { timestamp: Number(timestamp) - (1000 * 60 * 60 * 24) }
-        )
+        .andWhere('s.timestamp >= :timestamp', { timestamp: dateNow.unix() })
         .getMany();
 
     if (query.length === 0) {
@@ -58,17 +56,31 @@ export const getVolumeDay = async (
 export async function addPoolVolume(
     store: Store,
     pool: Pool,
-    timestamp: bigint
+    dateNow: Dayjs
 ): Promise<void> {
     const { currencyZero, currencyOne } = pool;
+    const timestamp = BigInt(dateNow.unix());
     const id = pool.id + '-' + timestamp;
 
-    const volumeDay = await getVolumeDay(store, currencyZero, currencyOne, timestamp);
-    const volumeDayUSD = await getPriceUSD(store, currencyZero, volumeDay, timestamp);
+    const volumeDay = await getVolumeDay(store, currencyZero, currencyOne, dateNow);
+    const volumeDayUSD = await getPriceUSD(store, currencyZero, volumeDay, dateNow);
 
-    const props = { id, pool, volumeDayUSD, timestamp };
+    const poolVolumeDay = await store.get(PoolVolumeDay, { where: { id, timestamp } });
 
-    await store.save(new PoolVolumeDay(props))
+    if (poolVolumeDay) {
+        await store.update(
+            PoolVolumeDay,
+            { id, timestamp },
+            { volumeDayUSD }
+        )
+    } else {
+        await store.save(new PoolVolumeDay({
+            id,
+            pool,
+            volumeDayUSD,
+            timestamp,
+        }))
+    }
 }
 
 export async function addPoolLiquidity(
@@ -76,14 +88,14 @@ export async function addPoolLiquidity(
     pool: Pool,
     balanceZero: bigint,
     balanceOne: bigint,
-    timestamp: bigint
+    dateNow: Dayjs,
 ): Promise<void> {
-    const id = pool.id + '-' + timestamp;
-    const usdPriceZero = await getPriceUSD(store, pool.currencyZero, balanceZero, timestamp);
-    const usdPriceOne = await getPriceUSD(store, pool.currencyOne, balanceOne, timestamp);
+    const id = pool.id + '-' + dateNow.unix();
+    const usdPriceZero = await getPriceUSD(store, pool.currencyZero, balanceZero, dateNow);
+    const usdPriceOne = await getPriceUSD(store, pool.currencyOne, balanceOne, dateNow);
     const usdTotalLiquidity = usdPriceZero + usdPriceOne;
 
-    const props = { id, pool, usdPriceZero, usdPriceOne, usdTotalLiquidity, timestamp };
+    const props = { id, pool, usdPriceZero, usdPriceOne, usdTotalLiquidity, timestamp: BigInt(dateNow.unix()) };
 
     await store.save(new PoolLiquidity(props))
 }
