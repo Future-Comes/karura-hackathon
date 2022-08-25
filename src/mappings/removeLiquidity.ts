@@ -2,10 +2,9 @@ import {EventHandlerContext} from "@subsquid/substrate-processor"
 import {DexRemoveLiquidityEvent} from "../types/events"
 import {LiquidityChangeReason} from "../model"
 import {CurrencyId} from "../types/v2041"
-import {addPoolVolume, createPool} from "../utils/pools";
+import {createPool, updatePoolVolumeForDay} from "../utils/pools";
 import {createCurrency, getTokenName} from "../utils/currency";
 import {addLiquidityChange} from "../utils/liquidity";
-import {formatDate} from "./utility";
 import dayjs from "dayjs";
 
 interface RemoveLiquidityParams {
@@ -92,8 +91,7 @@ async function getRemoveLiquidityParams(ctx: EventHandlerContext): Promise<Remov
 export async function handleRemoveLiquidity(ctx : EventHandlerContext): Promise<void> {
     const {store, block} = ctx
 
-    const timestamp = BigInt(block.timestamp);
-    const dateNow = formatDate(dayjs(Number(timestamp)));
+    const timestamp = dayjs(block.timestamp).startOf('day').unix()
 
     const { cur0, pool0, cur1, pool1 } = await getRemoveLiquidityParams(ctx)
 
@@ -106,7 +104,7 @@ export async function handleRemoveLiquidity(ctx : EventHandlerContext): Promise<
     const currencyOne = await createCurrency(store, currencyOneName);
 
     const pool = await createPool(store, currencyZero, currencyOne);
-    await addPoolVolume(store, pool, dateNow);
+    await updatePoolVolumeForDay(store, pool, timestamp);
 
     await addLiquidityChange(
         ctx,

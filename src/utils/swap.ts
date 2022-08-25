@@ -15,14 +15,13 @@ type Currencies = { [k: string]: Currency };
 export async function createSwap(ctx: EventHandlerContext, swap: NormalizationSwap): Promise<void> {
     const { step, fromCurrency, fromAmount, toCurrency, toAmount } = swap;
     const { store, event, block } = ctx;
-    const timestamp = BigInt(ctx.block.timestamp);
 
     await store.save(new Swap({
         id: event.id + '-' + step,
         blockNumber: block.height,
         eventIdx: event.indexInBlock,
         step,
-        timestamp,
+        timestamp: BigInt(block.timestamp),
         fromCurrency,
         toCurrency,
         fromAmount,
@@ -30,7 +29,7 @@ export async function createSwap(ctx: EventHandlerContext, swap: NormalizationSw
     }))
 }
 
-export async function getSwaps(
+export async function makeSwaps(
     store: Store,
     propPath: CurrencyId[],
     liquidityChanges: bigint[]

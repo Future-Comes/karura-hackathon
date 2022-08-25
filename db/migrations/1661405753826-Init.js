@@ -1,5 +1,5 @@
-module.exports = class Init1660304346304 {
-  name = 'Init1660304346304'
+module.exports = class Init1661405753826 {
+  name = 'Init1661405753826'
 
   async up(db) {
     await db.query(`CREATE TABLE "coin_gecko" ("id" character varying NOT NULL, "symbol" text NOT NULL, "name" text NOT NULL, "price" numeric, "updated_at" integer, CONSTRAINT "PK_f8402c1abb7f2fc7f86739bb855" PRIMARY KEY ("id"))`)
@@ -17,11 +17,12 @@ module.exports = class Init1660304346304 {
     await db.query(`CREATE TABLE "pool" ("id" character varying NOT NULL, "currency_zero_id" character varying NOT NULL, "currency_one_id" character varying NOT NULL, CONSTRAINT "PK_db1bfe411e1516c01120b85f8fe" PRIMARY KEY ("id"))`)
     await db.query(`CREATE INDEX "IDX_b82075ca2eb663aad1e2789c74" ON "pool" ("currency_zero_id") `)
     await db.query(`CREATE INDEX "IDX_d17bc6590f09c687917fbfc015" ON "pool" ("currency_one_id") `)
-    await db.query(`CREATE TABLE "liquidity_change" ("id" character varying NOT NULL, "timestamp" numeric NOT NULL, "block_number" integer NOT NULL, "event_idx" integer NOT NULL, "step" integer NOT NULL, "reason" character varying(6) NOT NULL, "amount_zero" numeric NOT NULL, "amount_one" numeric NOT NULL, "balance_zero" numeric NOT NULL, "balance_one" numeric NOT NULL, "total_value" numeric NOT NULL, "hash" text, "event_id" text NOT NULL, "account" text, "currency_zero_id" character varying NOT NULL, "currency_one_id" character varying NOT NULL, "pool_id" character varying NOT NULL, CONSTRAINT "PK_470573b79a4d135580c7e7c8179" PRIMARY KEY ("id"))`)
+    await db.query(`CREATE TABLE "liquidity_change" ("id" character varying NOT NULL, "amount_zero" numeric NOT NULL, "amount_one" numeric NOT NULL, "step" integer NOT NULL, "total_value" numeric NOT NULL, "total_liquidity_zero" numeric NOT NULL, "total_liquidity_one" numeric NOT NULL, "change_reason" character varying(6) NOT NULL, "timestamp" numeric NOT NULL, "block_number" integer NOT NULL, "event_idx" integer NOT NULL, "event_id" text NOT NULL, "hash" text NOT NULL, "account" text NOT NULL, "pool_id" character varying NOT NULL, "currency_zero_id" character varying NOT NULL, "currency_one_id" character varying NOT NULL, CONSTRAINT "PK_470573b79a4d135580c7e7c8179" PRIMARY KEY ("id"))`)
+    await db.query(`CREATE INDEX "IDX_59f7403843cb6443f368122bb8" ON "liquidity_change" ("pool_id") `)
     await db.query(`CREATE INDEX "IDX_34fcef5a4c43839ff5ea4c062f" ON "liquidity_change" ("currency_zero_id") `)
     await db.query(`CREATE INDEX "IDX_26103a0ae2c17ab7b390eb1ca2" ON "liquidity_change" ("currency_one_id") `)
-    await db.query(`CREATE INDEX "IDX_59f7403843cb6443f368122bb8" ON "liquidity_change" ("pool_id") `)
-    await db.query(`CREATE TABLE "currency" ("id" character varying NOT NULL, "currency_name" text NOT NULL, "coin_gecko_id" character varying, CONSTRAINT "PK_3cda65c731a6264f0e444cc9b91" PRIMARY KEY ("id"))`)
+    await db.query(`CREATE TABLE "currency" ("id" character varying NOT NULL, "symbol" text NOT NULL, "decimal" integer NOT NULL, "coin_gecko_id" character varying, CONSTRAINT "PK_3cda65c731a6264f0e444cc9b91" PRIMARY KEY ("id"))`)
+    await db.query(`CREATE UNIQUE INDEX "IDX_25fd91050301f15e352646105d" ON "currency" ("symbol") `)
     await db.query(`CREATE INDEX "IDX_c6e93b0b659f31e8a504ed14e1" ON "currency" ("coin_gecko_id") `)
     await db.query(`CREATE TABLE "swap" ("id" character varying NOT NULL, "timestamp" numeric NOT NULL, "block_number" integer NOT NULL, "event_idx" integer NOT NULL, "step" integer NOT NULL, "from_amount" numeric NOT NULL, "to_amount" numeric NOT NULL, "from_currency_id" character varying NOT NULL, "to_currency_id" character varying NOT NULL, CONSTRAINT "PK_4a10d0f359339acef77e7f986d9" PRIMARY KEY ("id"))`)
     await db.query(`CREATE INDEX "IDX_5a104bbdfe48a94a9fd2b81990" ON "swap" ("from_currency_id") `)
@@ -33,9 +34,9 @@ module.exports = class Init1660304346304 {
     await db.query(`ALTER TABLE "pool_liquidity" ADD CONSTRAINT "FK_09772a4143d40063de22a1d556e" FOREIGN KEY ("pool_id") REFERENCES "pool"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`)
     await db.query(`ALTER TABLE "pool" ADD CONSTRAINT "FK_b82075ca2eb663aad1e2789c74a" FOREIGN KEY ("currency_zero_id") REFERENCES "currency"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`)
     await db.query(`ALTER TABLE "pool" ADD CONSTRAINT "FK_d17bc6590f09c687917fbfc0150" FOREIGN KEY ("currency_one_id") REFERENCES "currency"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`)
+    await db.query(`ALTER TABLE "liquidity_change" ADD CONSTRAINT "FK_59f7403843cb6443f368122bb89" FOREIGN KEY ("pool_id") REFERENCES "pool"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`)
     await db.query(`ALTER TABLE "liquidity_change" ADD CONSTRAINT "FK_34fcef5a4c43839ff5ea4c062ff" FOREIGN KEY ("currency_zero_id") REFERENCES "currency"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`)
     await db.query(`ALTER TABLE "liquidity_change" ADD CONSTRAINT "FK_26103a0ae2c17ab7b390eb1ca2f" FOREIGN KEY ("currency_one_id") REFERENCES "currency"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`)
-    await db.query(`ALTER TABLE "liquidity_change" ADD CONSTRAINT "FK_59f7403843cb6443f368122bb89" FOREIGN KEY ("pool_id") REFERENCES "pool"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`)
     await db.query(`ALTER TABLE "currency" ADD CONSTRAINT "FK_c6e93b0b659f31e8a504ed14e19" FOREIGN KEY ("coin_gecko_id") REFERENCES "coin_gecko"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`)
     await db.query(`ALTER TABLE "swap" ADD CONSTRAINT "FK_5a104bbdfe48a94a9fd2b81990a" FOREIGN KEY ("from_currency_id") REFERENCES "currency"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`)
     await db.query(`ALTER TABLE "swap" ADD CONSTRAINT "FK_3b0a35a16b356bc35c147cfe4eb" FOREIGN KEY ("to_currency_id") REFERENCES "currency"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`)
@@ -58,10 +59,11 @@ module.exports = class Init1660304346304 {
     await db.query(`DROP INDEX "public"."IDX_b82075ca2eb663aad1e2789c74"`)
     await db.query(`DROP INDEX "public"."IDX_d17bc6590f09c687917fbfc015"`)
     await db.query(`DROP TABLE "liquidity_change"`)
+    await db.query(`DROP INDEX "public"."IDX_59f7403843cb6443f368122bb8"`)
     await db.query(`DROP INDEX "public"."IDX_34fcef5a4c43839ff5ea4c062f"`)
     await db.query(`DROP INDEX "public"."IDX_26103a0ae2c17ab7b390eb1ca2"`)
-    await db.query(`DROP INDEX "public"."IDX_59f7403843cb6443f368122bb8"`)
     await db.query(`DROP TABLE "currency"`)
+    await db.query(`DROP INDEX "public"."IDX_25fd91050301f15e352646105d"`)
     await db.query(`DROP INDEX "public"."IDX_c6e93b0b659f31e8a504ed14e1"`)
     await db.query(`DROP TABLE "swap"`)
     await db.query(`DROP INDEX "public"."IDX_5a104bbdfe48a94a9fd2b81990"`)
@@ -73,9 +75,9 @@ module.exports = class Init1660304346304 {
     await db.query(`ALTER TABLE "pool_liquidity" DROP CONSTRAINT "FK_09772a4143d40063de22a1d556e"`)
     await db.query(`ALTER TABLE "pool" DROP CONSTRAINT "FK_b82075ca2eb663aad1e2789c74a"`)
     await db.query(`ALTER TABLE "pool" DROP CONSTRAINT "FK_d17bc6590f09c687917fbfc0150"`)
+    await db.query(`ALTER TABLE "liquidity_change" DROP CONSTRAINT "FK_59f7403843cb6443f368122bb89"`)
     await db.query(`ALTER TABLE "liquidity_change" DROP CONSTRAINT "FK_34fcef5a4c43839ff5ea4c062ff"`)
     await db.query(`ALTER TABLE "liquidity_change" DROP CONSTRAINT "FK_26103a0ae2c17ab7b390eb1ca2f"`)
-    await db.query(`ALTER TABLE "liquidity_change" DROP CONSTRAINT "FK_59f7403843cb6443f368122bb89"`)
     await db.query(`ALTER TABLE "currency" DROP CONSTRAINT "FK_c6e93b0b659f31e8a504ed14e19"`)
     await db.query(`ALTER TABLE "swap" DROP CONSTRAINT "FK_5a104bbdfe48a94a9fd2b81990a"`)
     await db.query(`ALTER TABLE "swap" DROP CONSTRAINT "FK_3b0a35a16b356bc35c147cfe4eb"`)

@@ -12,12 +12,11 @@ import * as v2041 from "../types/v2041";
 import * as v2080 from "../types/v2080";
 import {EventHandlerContext, Store} from "@subsquid/substrate-processor";
 import {Currency, LiquidityChange, LiquidityChangeReason, Pool} from "../model";
-import {createCurrLiquidity} from "./currency";
+import {updateCurrLiquidityForDay, getCurrencyId} from "./currency";
 import assert from "assert";
-import {formatDate, get, getCurrencyId, getPriceUSD} from "../mappings/utility";
+import {getPriceInUSD, makeId} from "../mappings/utility";
 import {addPoolLiquidity} from "./pools";
 import dayjs from "dayjs";
-
 
 export async function getLiquidityPool(ctx : StorageContext, key:[CurrencyId,CurrencyId]): Promise<[bigint, bigint]>{
     const storage = new DexLiquidityPoolStorage(ctx)
@@ -64,95 +63,85 @@ export async function addLiquidityChange(
     swapStep?: number
 ): Promise<void> {
     const {store, event, block} = ctx
-    const timestamp = BigInt(block.timestamp);
-    const dateNow = formatDate(dayjs(Number(timestamp)));
-    const account = event.extrinsic?.signer;
-    const hash = event.extrinsic?.hash;
+    const timestamp = dayjs(block.timestamp).startOf('day').unix()
+    const account = event.extrinsic?.signer
+    const hash = event.extrinsic?.hash
     const eventId = `${event.blockNumber}-${event.indexInBlock}`
 
-    const priceZero = await getPriceUSD(store, currencyZero, amountZero, dateNow);
-    const priceOne = await getPriceUSD(store, currencyZero, amountOne, dateNow);
-    const totalValue = priceZero + priceOne || 0;
-
-    const pair = currencyZero.currencyName + '-' + currencyOne.currencyName
-    const initial = await get(store, LiquidityChange, 'initial--' + pair);
+    const id = makeId('initial--' + currencyZero.symbol + currencyOne.symbol)
+    const initial = await store.get(LiquidityChange, { where: { id } })
 
     if (!initial) {
         const cur0 = getCurrencyId(currencyZero);
         const cur1 = getCurrencyId(currencyOne);
         const [balanceZero, balanceOne] = await getLiquidityPool(ctx,[cur0, cur1]);
 
+        await updateCurrLiquidityForDay(store, currencyZero, balanceZero, timestamp);
+        await updateCurrLiquidityForDay(store, currencyOne, balanceOne, timestamp);
+        await addPoolLiquidity(store, pool, balanceZero, balanceOne, timestamp);
+
         await store.save(new LiquidityChange({
-            id: 'initial--' + pair,
-            blockNumber: block.height - 1,
-            eventIdx: -1,
-            step: 0,
-            reason: LiquidityChangeReason.INIT,
+            id,
+            pool,
             currencyZero,
             currencyOne,
-            amountZero,
-            amountOne,
-            balanceZero,
-            balanceOne,
-            pool,
-            account,
-            totalValue,
-            hash,
+            amountZero: 0n,
+            amountOne: 0n,
+            totalLiquidityZero: balanceZero,
+            totalLiquidityOne: balanceOne,
+            step: 0,
+            changeReason: LiquidityChangeReason.INIT,
+            timestamp: BigInt(block.timestamp),
+            blockNumber: block.height - 1,
+            eventIdx: -1,
             eventId,
-            timestamp: BigInt(block.timestamp - 1)
+            hash,
+            account,
+            totalValue: 0
         }));
-
-        await createCurrLiquidity(store, currencyZero, balanceZero, dateNow);
-        await createCurrLiquidity(store, currencyOne, balanceOne, dateNow);
-        await addPoolLiquidity(store, pool, balanceZero, balanceOne, dateNow);
     }
 
     const balance = await getPrevBalance(store, currencyZero, currencyOne)
     const balanceZero = balance[0] + amountZero;
     const balanceOne = balance[1] + amountOne;
 
-    await createCurrLiquidity(store, currencyZero, balanceZero, dateNow);
-    await createCurrLiquidity(store, currencyOne, balanceOne, dateNow);
-    await addPoolLiquidity(store, pool, balanceZero, balanceOne, dateNow);
+    await updateCurrLiquidityForDay(store, currencyZero, balanceZero, timestamp);
+    await updateCurrLiquidityForDay(store, currencyOne, balanceOne, timestamp);
+    await addPoolLiquidity(store, pool, balanceZero, balanceOne, timestamp);
 
-    let change = new LiquidityChange({
-        id: swapStep ? event.id + '-' + swapStep : event.id,
-        blockNumber: block.height,
-        eventIdx: event.indexInBlock,
-        step: swapStep || 0,
-        reason,
+    const priceZero = await getPriceInUSD(store, currencyZero, amountZero, timestamp);
+    const priceOne = await getPriceInUSD(store, currencyZero, amountOne, timestamp);
+    const totalValue = priceZero + priceOne || 0;
+
+    await store.save(new LiquidityChange({
+        id: makeId(swapStep ? event.id + '-' + swapStep : event.id),
+        pool,
         currencyZero,
         currencyOne,
         amountZero,
         amountOne,
-        balanceZero,
-        balanceOne,
-        pool,
-        account,
-        totalValue,
-        hash,
+        totalLiquidityZero: balanceZero,
+        totalLiquidityOne: balanceOne,
+        step: swapStep || 0,
+        changeReason: LiquidityChangeReason.SWAP,
+        timestamp: BigInt(block.timestamp),
+        blockNumber: block.height,
+        eventIdx: event.indexInBlock,
         eventId,
-        timestamp
-    })
-
-    await store.save(change)
+        hash,
+        account,
+        totalValue
+    }))
 }
 
 
 async function getPrevBalance(store: Store, currencyZero: Currency, currencyOne: Currency): Promise<[bigint, bigint]> {
-    let rows = await store.find(LiquidityChange, {
-        select: ['balanceZero', 'balanceOne'],
-        where: {
-            currencyZero,
-            currencyOne,
-        },
-        order: {
-            blockNumber: 'DESC',
-            eventIdx: 'DESC',
-            step: 'DESC'
-        },
+    const rows = await store.find(LiquidityChange, {
+        select: ['totalLiquidityZero', 'totalLiquidityOne'],
+        where: { currencyZero, currencyOne },
+        order: { blockNumber: 'DESC', eventIdx: 'DESC', step: 'DESC' },
         take: 1
     })
     assert(rows.length == 1)
-    return [rows[0].balanceZero, rows[0].balanceOne]
+    return [rows[0].totalLiquidityZero, rows[0].totalLiquidityOne]
 }

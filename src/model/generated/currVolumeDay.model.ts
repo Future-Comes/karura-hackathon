@@ -21,6 +21,6 @@ export class CurrVolumeDay {
   @Column_("numeric", {nullable: false})
   volumeDayUSD!: number
 
-  @Column_("numeric", {transformer: marshal.bigintTransformer, nullable: false})
-  timestamp!: bigint
+  @Column_("int4", {nullable: false})
+  timestamp!: number
 }

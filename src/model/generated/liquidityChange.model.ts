@@ -1,8 +1,8 @@
 import {Entity as Entity_, Column as Column_, PrimaryColumn as PrimaryColumn_, ManyToOne as ManyToOne_, Index as Index_} from "typeorm"
 import * as marshal from "./marshal"
-import {LiquidityChangeReason} from "./_liquidityChangeReason"
-import {Currency} from "./currency.model"
 import {Pool} from "./pool.model"
+import {Currency} from "./currency.model"
+import {LiquidityChangeReason} from "./_liquidityChangeReason"
 
 @Entity_()
 export class LiquidityChange {
@@ -16,20 +16,9 @@ export class LiquidityChange {
   @PrimaryColumn_()
   id!: string
 
-  @Column_("numeric", {transformer: marshal.bigintTransformer, nullable: false})
-  timestamp!: bigint
-
-  @Column_("int4", {nullable: false})
-  blockNumber!: number
-
-  @Column_("int4", {nullable: false})
-  eventIdx!: number
-
-  @Column_("int4", {nullable: false})
-  step!: number
-
-  @Column_("varchar", {length: 6, nullable: false})
-  reason!: LiquidityChangeReason
+  @Index_()
+  @ManyToOne_(() => Pool, {nullable: false})
+  pool!: Pool
 
   @Index_()
   @ManyToOne_(() => Currency, {nullable: false})
@@ -45,25 +34,36 @@ export class LiquidityChange {
   @Column_("numeric", {transformer: marshal.bigintTransformer, nullable: false})
   amountOne!: bigint
 
-  @Column_("numeric", {transformer: marshal.bigintTransformer, nullable: false})
-  balanceZero!: bigint
-
-  @Column_("numeric", {transformer: marshal.bigintTransformer, nullable: false})
-  balanceOne!: bigint
-
-  @Index_()
-  @ManyToOne_(() => Pool, {nullable: false})
-  pool!: Pool
+  @Column_("int4", {nullable: false})
+  step!: number
 
   @Column_("numeric", {nullable: false})
   totalValue!: number
 
-  @Column_("text", {nullable: true})
-  hash!: string | undefined | null
+  @Column_("numeric", {transformer: marshal.bigintTransformer, nullable: false})
+  totalLiquidityZero!: bigint
+
+  @Column_("numeric", {transformer: marshal.bigintTransformer, nullable: false})
+  totalLiquidityOne!: bigint
+
+  @Column_("varchar", {length: 6, nullable: false})
+  changeReason!: LiquidityChangeReason
+
+  @Column_("numeric", {transformer: marshal.bigintTransformer, nullable: false})
+  timestamp!: bigint
+
+  @Column_("int4", {nullable: false})
+  blockNumber!: number
+
+  @Column_("int4", {nullable: false})
+  eventIdx!: number
 
   @Column_("text", {nullable: false})
   eventId!: string
 
-  @Column_("text", {nullable: true})
-  account!: string | undefined | null
+  @Column_("text", {nullable: false})
+  hash!: string
+
+  @Column_("text", {nullable: false})
+  account!: string
 }

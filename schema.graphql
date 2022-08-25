@@ -14,24 +14,23 @@ type Swap @entity {
 type LiquidityChange @entity {
   "LiquidityChange address"
   id: ID!
-  timestamp: BigInt!
-  blockNumber: Int!
-  eventIdx: Int!
-  step: Int!
-  reason: LiquidityChangeReason!
+  pool: Pool!
   currencyZero: Currency!
   currencyOne: Currency!
   amountZero: BigInt!
   amountOne: BigInt!
-  balanceZero: BigInt!
-  balanceOne: BigInt!
-  pool: Pool!
+  step: Int!
   totalValue: Float!
-  hash: String
+  totalLiquidityZero: BigInt!
+  totalLiquidityOne: BigInt!
+  changeReason: LiquidityChangeReason!
+  timestamp: BigInt!
+  blockNumber: Int!
+  eventIdx: Int!
   eventId: String!
-  account: String
+  hash: String!
+  account: String!
 }
-
 
 enum LiquidityChangeReason {
   INIT
@@ -45,13 +44,14 @@ type CoinGecko @entity {
   symbol: String! @unique
   name: String!
   price: Float
-  updatedAt: BigInt
+  updatedAt: Int
 }
 
 type Currency @entity {
   "Currency address"
   id: ID!
-  currencyName: String!
+  symbol: String! @index @unique
+  decimal: Int!
   coinGecko: CoinGecko
   volumeDayHistory: [CurrVolumeDay!]! @derivedFrom(field: "currency")
   liquidityHistory: [CurrLiquidity!]! @derivedFrom(field: "currency")
@@ -63,15 +63,15 @@ type CurrPrice @entity {
   id: ID!
   currency: Currency!
   usdPrice: Float!
-  timestamp: BigInt!
+  timestamp: Int!
 }
 
 type CurrVolumeDay @entity {
   id: ID!
-  currency: Currency!
+  currency: Currency! @index
   volumeDayNative: BigInt!
   volumeDayUSD: Float!
-  timestamp: BigInt!
+  timestamp: Int!
 }
 
 type CurrLiquidity @entity {
@@ -79,14 +79,14 @@ type CurrLiquidity @entity {
   currency: Currency!
   liquidity: BigInt!
   liquidityUSD: Float!
-  timestamp: BigInt!
+  timestamp: Int!
 }
 
 type Pool @entity {
   "Pool address"
   id: ID!
-  currencyZero: Currency!
-  currencyOne: Currency!
+  currencyZero: Currency! @index
+  currencyOne: Currency! @index
   volumeDaysDay: [PoolVolumeDay!]! @derivedFrom(field: "pool")
   liquidityHistory: [PoolLiquidity!]! @derivedFrom(field: "pool")
   poolOperations: [LiquidityChange!]! @derivedFrom(field: "pool")
@@ -96,7 +96,7 @@ type PoolVolumeDay @entity {
   id: ID!
   pool: Pool!
   volumeDayUSD: Float!
-  timestamp: BigInt!
+  timestamp: Int!
 }
 
 type PoolLiquidity @entity {
@@ -105,5 +105,5 @@ type PoolLiquidity @entity {
   usdPriceZero: Float!
   usdPriceOne: Float!
   usdTotalLiquidity: Float!
-  timestamp: BigInt!
+  timestamp: Int!
 }

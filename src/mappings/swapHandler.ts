@@ -4,10 +4,9 @@ import {EventHandlerContext} from "@subsquid/substrate-processor"
 import {DexSwapEvent} from "../types/events"
 import {Currency, LiquidityChangeReason} from "../model"
 import {addLiquidityChange} from "../utils/liquidity"
-import {addPoolVolume, createPool} from "../utils/pools"
-import {createCurrPrice, createCurrVolumeDay} from "../utils/currency";
-import {createSwap, getSwaps} from "../utils/swap";
-import {formatDate} from "./utility";
+import {updatePoolVolumeForDay, createPool} from "../utils/pools"
+import {createDailyPrice, updateCurrVolumeForDay} from "../utils/currency";
+import {createSwap, makeSwaps} from "../utils/swap";
 import dayjs from "dayjs";
 
 interface SwapParams {
@@ -79,31 +78,30 @@ async function getSwapParams(ctx: EventHandlerContext): Promise<SwapParams> {
 export async function handleSwap(ctx: EventHandlerContext): Promise<void> {
     const { store, block } = ctx;
 
-    const timestamp = BigInt(block.timestamp);
-    const dateNow = formatDate(dayjs(Number(timestamp)));
+    const timestamp = dayjs(block.timestamp).startOf('day').unix()
 
     const { propPath, liquidityChanges } = await getSwapParams(ctx);
 
     if (propPath.length === liquidityChanges.length) {
-        const swaps = await getSwaps(store, propPath, liquidityChanges);
+        const swaps = await makeSwaps(store, propPath, liquidityChanges);
 
         for (const swap of swaps) {
-            const { step, fromCurrency, fromAmount, toCurrency, toAmount } = swap;
+            const { fromCurrency, fromAmount, toCurrency, toAmount } = swap;
 
             await createSwap(ctx, swap);
 
-            await createCurrPrice(store, fromCurrency, dateNow);
-            await createCurrPrice(store, toCurrency, dateNow);
+            await createDailyPrice(store, fromCurrency, timestamp);
+            await createDailyPrice(store, toCurrency, timestamp);
 
-            await createCurrVolumeDay(store, fromCurrency, dateNow);
-            await createCurrVolumeDay(store, toCurrency, dateNow);
+            await updateCurrVolumeForDay(store, fromCurrency, timestamp);
 
             const [currencyZero, currencyOne] = getTradingPair(fromCurrency, toCurrency)
-            const balanceZero = currencyZero.currencyName === fromCurrency.currencyName ? fromAmount : -toAmount
-            const balanceOne = currencyOne.currencyName === fromCurrency.currencyName ? fromAmount : -toAmount
 
             const pool = await createPool(store, currencyZero, currencyOne);
-            await addPoolVolume(store, pool, dateNow);
+            await updatePoolVolumeForDay(store, pool, timestamp);
+
+            const balanceZero = currencyZero.symbol === fromCurrency.symbol ? fromAmount : -toAmount
+            const balanceOne = currencyOne.symbol === fromCurrency.symbol ? fromAmount : -toAmount
 
             await addLiquidityChange(
                 ctx,
@@ -113,7 +111,7 @@ export async function handleSwap(ctx: EventHandlerContext): Promise<void> {
                 currencyOne,
                 balanceZero,
                 balanceOne,
-                step
+                swap.step
             )
         }
     }
@@ -123,7 +121,7 @@ function getTradingPair(currencyA: Currency, currencyB: Currency): [Currency, Cu
     let order: Record<string, number> = primitivesConfig.types.TokenSymbol._enum
 
     return [currencyA, currencyB].sort((a, b) =>
-        order[a.currencyName] - order[b.currencyName]) as [Currency, Currency];
+        order[a.symbol] - order[b.symbol]) as [Currency, Currency];
 }
 
 
